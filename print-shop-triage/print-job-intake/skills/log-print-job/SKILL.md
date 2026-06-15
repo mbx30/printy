@@ -1,0 +1,110 @@
+---
+name: log-print-job
+description: >
+  This skill should be used when Michael says "log this job", "add this to the
+  tracker", "create a print job", "add a job", pastes email text and asks to
+  log it, or says "new print job from [client]". It extracts job details from
+  pasted email text or spoken specs, validates every field, and creates one
+  correct row in the Notion Print Jobs tracker. No screen control needed —
+  the user provides the email content directly.
+metadata:
+  version: "0.1.0"
+  author: "Go Postal"
+---
+
+# Log Print Job
+
+Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — Michael provides the email text (or dictates the job details), and this skill handles extraction, validation, and Notion creation.
+
+## When to Use This
+
+- Michael pastes an email body and says "log this"
+- Michael dictates: "Add a job for Loma Club — 35 laminated menus, 8.5x14, cardstock"
+- Michael wants to log a job without running the full morning intake routine
+
+## Execution Steps
+
+### 1. Extract Fields
+
+From the provided text, extract all available fields using the confidence model:
+- **Certain** — explicitly stated → use it
+- **Probable** — strongly implied → confirm before writing
+- **Unknown** — not present → apply default or ask
+
+**Extraction checklist:**
+- **Client**: name in signature, greeting, or "From:" line → match to Notion Clients database
+- **Job title**: item type + premium add-ons only. No size, quantity, or client name.
+- **Quantity**: look for numbers, "qty", "copies", "pcs"
+- **Size**: dimension patterns; normalize to live option strings
+- **Paper Type**: explicit material, or resolve via client defaults
+- **Promised**: stated date/time, or default to next business day at 4:00 PM (America/Los_Angeles)
+- **Rcvd**: default to today (America/Los_Angeles)
+- **Done**: always "Not started"
+- **Cost per**: only if explicitly stated
+
+Load the full schema, rules, and normalization logic from the morning-intake skill's reference file at:
+`skills/morning-intake/references/print-job-schema.md`
+
+### 2. Ask for Missing Required Fields
+
+If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) is missing and no default applies, ask Michael in one message as a short checklist:
+
+- "Confirm size — I see 8.5x14, correct?"
+- "What paper type? (or should I use their default?)"
+- "When is this promised for? (I'll default to tomorrow at 4 PM)"
+
+Ask the fewest questions possible. Group all clarifications into one message.
+
+### 3. Run Pre-Flight Gate
+
+Before creating the row:
+
+- [ ] Target is the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`)
+- [ ] Job, Client, Size, Quantity, Paper Type, Promised, Done are all non-empty
+- [ ] Size, Paper Type, Done values exist in the live schema option sets
+- [ ] Job title contains billing add-ons and excludes Size/Quantity/Client name
+- [ ] Rcvd and Promised set correctly; Promised is not before Rcvd
+- [ ] Duplicate check done (same Client + Size + Quantity + Paper Type + Promised in last 30 days)
+- [ ] All Probable values confirmed
+
+If any box fails: stop and ask. Do not create a partial or guessed row.
+
+### 4. Create the Notion Entry
+
+Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`).
+
+After creation, verify the returned values match the intended values. Fix any mismatch immediately.
+
+### 5. Confirm to Michael
+
+Return a short confirmation:
+
+```
+✅ Job logged!
+
+Client: [Client]
+Job: [Job title]
+Qty: [Quantity] × [Size]
+Paper: [Paper Type]
+Rcvd: [date]
+Promised: [date + time]
+Status: Not started
+
+→ [Notion link to the new job page]
+```
+
+If a new client was created, add: "New client page created for [Client] — remember to add a logo and cover image."
+
+## Key Rules
+
+- Never create the row while any required field is unknown and unconfirmed.
+- Never put Size, Quantity, or Client name in the Job title.
+- Never set same-day Promised by default.
+- If client doesn't exist in Notion, create their Client page immediately.
+- "Same as last time" with no stated specs = Unknown. Ask, don't copy.
+- For Music Box jobs, apply the Music Box naming convention (see print-job-schema.md).
+
+## Schema Reference
+
+Full data model, job title rules, paper type decision tree, size normalization, and client page layout:
+→ `skills/morning-intake/references/print-job-schema.md`

@@ -1,0 +1,9 @@
+{
+  "name": "print-job-intake",
+  "version": "0.1.0",
+  "description": "Go Postal print job intake automation. Runs a morning routine to collect new print jobs from Gmail, create Notion tracker entries, and draft client replies. Also supports manual intake from pasted email text.",
+  "author": {
+    "name": "Michael (Go Postal)"
+  },
+  "keywords": ["print", "notion", "gmail", "intake", "go-postal"]
+}
