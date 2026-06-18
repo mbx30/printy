@@ -76,7 +76,13 @@ Fields to extract (see `references/print-job-schema.md` for full schema and rule
 - **Done**: always "Not started" for new jobs
 - **Cost per**: only if explicitly stated
 
-### Step 6 — Run Pre-Flight Gate
+### Step 6 — Calculate Promised Date
+
+Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `references/completion-date-logic.md` and apply the depth → business days table to set the Promised date for this job.
+
+If the email specified a due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
+
+### Step 7 — Run Pre-Flight Gate
 
 Before creating any Notion row, verify every item passes. Do not create a partial row.
 
@@ -90,7 +96,7 @@ Before creating any Notion row, verify every item passes. Do not create a partia
 
 If any item fails: stop, flag the issue to Michael, and move to the next email.
 
-### Step 6b — Confirm Before Write
+### Step 7b — Confirm Before Write
 
 Show Michael the extracted entry and wait for a go-ahead before writing to Notion. When processing multiple emails, batch them into one message:
 
@@ -110,11 +116,11 @@ Reply ✅ to log, or correct any field: "[field] = [value]"
 
 Do not write to Notion until Michael confirms.
 
-### Step 7 — Create Notion Entry
+### Step 8 — Create Notion Entry
 
 Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
-### Step 8 — Summary Report
+### Step 9 — Summary Report
 
 After processing all emails, report to Michael:
 
@@ -142,3 +148,4 @@ Jobs created:
 
 - `references/email-detection-rules.md` — known senders, keyword logic, negative signals
 - `references/print-job-schema.md` — full data model, job title rules, paper type decision tree, normalization
+- `references/completion-date-logic.md` — queue depth → Promised date calculation

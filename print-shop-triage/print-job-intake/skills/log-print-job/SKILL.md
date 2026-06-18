@@ -57,7 +57,13 @@ If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) 
 
 Ask the fewest questions possible. Group all clarifications into one message.
 
-### 3. Confirm Before Write
+### 3. Calculate Promised Date
+
+Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `skills/morning-intake/references/completion-date-logic.md` and apply the depth → business days table to set Promised.
+
+If Michael stated a specific due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
+
+### 4. Confirm Before Write
 
 Before touching the tracker, show Michael a structured summary and wait for a go-ahead:
 
@@ -77,7 +83,7 @@ Reply ✅ to log, or correct any field: "[field] = [value]"
 
 Do not write anything until Michael confirms. If Michael corrects a field, update it and re-show the summary.
 
-### 4. Run Pre-Flight Gate
+### 5. Run Pre-Flight Gate
 
 Before creating the row:
 
@@ -91,7 +97,7 @@ Before creating the row:
 
 If any box fails: stop and ask. Do not create a partial or guessed row.
 
-### 5. Write to the Tracker
+### 6. Write to the Tracker
 
 **Path A — API access available** (Notion MCP or equivalent Notion integration):
 Create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
@@ -114,7 +120,7 @@ Cost per:   [value or blank]
 ─────────────────────────────
 ```
 
-### 6. Confirm to Michael
+### 7. Confirm to Michael
 
 Return a short confirmation:
 

@@ -92,11 +92,13 @@ Fields to extract (see `../morning-intake/references/print-job-schema.md` for fu
 - **Done**: always "Not started" for new jobs
 - **Cost per**: only if explicitly stated
 
-### Step 6 — Check Workload for Estimated Completion Date
+### Step 6 — Calculate Promised Date
 
 Use the Notion MCP to query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) and count jobs with status "Not started" or "In progress".
 
-Load `../morning-intake/references/completion-date-logic.md` to translate queue depth into an estimated completion date for the client reply.
+Load `../morning-intake/references/completion-date-logic.md` and apply the depth → business days table. The result sets the **Promised** date written to Notion and is also used as the completion date in the client reply draft.
+
+If the email specified a due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
 
 ### Step 7 — Run Pre-Flight Gate
 

@@ -78,20 +78,21 @@ The Job title carries every spec not covered by another column.
 - Date-only value (no time).
 
 ### Promised (required every time)
-- Default: next business day at 4:00 PM (America/Los_Angeles).
-- Never same-day by default.
+- **Always calculated from queue depth** — see `completion-date-logic.md`. Never use a fixed "next business day" default.
+- Query the Print Jobs database for active jobs (Not started + In progress), then apply the depth → days table in `completion-date-logic.md`.
+- Default outcome is tomorrow at 4:00 PM (1 business day out) when the queue is light (0–7 jobs).
+- If the email states a specific date or time, use that instead (client override).
+- Always a datetime: date + 4:00 PM unless the client states a specific time.
 - Business days: Monday–Friday. Skip Saturday and Sunday.
-- If the email states a specific pickup time, use that.
-- Always a datetime: date + 4:00 PM unless user states a specific time.
 
 **Ambiguous deadline decision table** — apply before writing Promised:
 
-| User says… | Promised default |
-|------------|-----------------|
-| "no rush" / "whenever" | Next business day at 4:00 PM |
-| "for today" / urgency language | Next business day at 4:00 PM (NEVER same day) |
-| "for the weekend" | Monday at 4:00 PM |
-| Job placed on Friday | Monday at 4:00 PM (skip weekend) |
+| User says… | Promised |
+|------------|---------|
+| "no rush" / "whenever" | Queue-based calculation (completion-date-logic.md) |
+| "for today" / urgency language | Queue-based calculation (NEVER same day) |
+| "for the weekend" | Monday at 4:00 PM minimum; push further if queue requires |
+| Job placed on Friday | Monday at 4:00 PM minimum; push further if queue requires |
 | Specific date given | That date at 4:00 PM |
 
 **IRON RULE: Never set Promised = today by default, regardless of urgency language.**
