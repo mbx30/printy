@@ -1,11 +1,15 @@
 {
-  "name": "Print Job Intake",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "print-shop-plugins",
   "description": "Print shop automation skills — morning intake, Gmail-based intake, and manual job logging.",
+  "owner": {
+    "name": "Go Postal SD"
+  },
   "plugins": [
     {
       "name": "print-job-intake",
       "description": "Morning print job intake automation for print shops. Sweeps Gmail for new orders, calculates promised dates from live queue depth, logs jobs to a Notion tracker, and drafts client confirmation replies.",
-      "path": "print-shop-triage/print-job-intake"
+      "source": "./print-shop-triage/print-job-intake"
     }
   ]
 }
