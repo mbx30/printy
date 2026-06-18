@@ -1,77 +1,82 @@
 ---
 name: morning-intake
 description: >
-  This skill should be used when Michael says "run morning intake", "start my
+  This skill should be used when the user says "run morning intake", "start my
   morning routine", "collect print jobs", "check for new orders", "run intake",
   or "let's do morning intake". It controls Gmail in Chrome via screen automation
-  to find new print job emails, stars them, creates entries in the Notion Print
-  Jobs tracker, and drafts confirmation replies to clients — all in one routine.
+  to find new print job emails, stars them, and creates entries in the Notion
+  Print Jobs tracker.
 metadata:
-  version: "0.1.0"
-  author: "Go Postal"
+  version: "0.4.0"
+  author: "Print Job Intake Plugin"
 ---
 
 # Morning Intake Routine
 
-Automate Go Postal's morning print job collection. Run this routine each morning to sweep Gmail for new print orders, log them to Notion, and draft client confirmation replies.
+## Before You Begin — Identity
 
-## Overview
+Check memory for the user's name and their company name. Substitute these throughout this skill wherever `[user's name]` and `[company name]` appear.
 
-This skill controls the screen (Chrome + Gmail) for email retrieval and starring, uses the Notion MCP to write tracker entries, and uses screen control to draft replies in Gmail. Do NOT use the Gmail API for reading emails — use computer use only.
+- If the user's name is not in memory → ask.
+- If the company name is not in memory → ask.
+- Ask both in one message if neither is available.
 
-**Current reply mode: DRAFT** — compose the reply and leave it as a draft for Michael to review and send manually. Do not auto-send. When Michael confirms a high success rate, this mode can be switched to auto-send.
+---
+
+Automate the shop's morning print job collection. Run this routine each morning to sweep Gmail for new print orders and log them to Notion.
+
+**Tools required**: Computer use (Chrome + Gmail screen control) · Notion MCP
 
 ## Execution Flow
 
-Run these steps sequentially. After each email is processed, move to the next before finishing the session.
+Run these steps sequentially. Process all emails before finishing the session.
 
 ### Step 1 — Open Gmail in Chrome
 
-Use computer use to:
-1. Take a screenshot to confirm Chrome is visible or open it.
+1. Take a screenshot to confirm Chrome is visible, or open it.
 2. Navigate to `https://mail.google.com` in the active tab.
-3. Confirm the account is `gopostalsd@gmail.com`. If a different account is showing, switch accounts.
+3. Confirm the account is `[user's Gmail account]`. If a different account is showing, switch accounts.
 
 ### Step 2 — Search for New Print Job Emails
 
-In the Gmail search bar, enter this query to find candidate emails:
+In the Gmail search bar, enter:
 
 ```
 is:unread (subject:print OR subject:menu OR subject:menus OR subject:poster OR subject:flyer OR subject:flier OR subject:bulletin OR subject:card OR subject:sign OR subject:signage OR subject:bookmark OR subject:order OR subject:flyers OR subject:fliers)
 ```
 
-Also check: `is:unread` emails from known client domains even if subject doesn't match keywords (see `references/email-detection-rules.md` for the full sender list).
+Also sweep `is:unread` emails from known client domains even if the subject doesn't match keywords — see `references/email-detection-rules.md` for the full sender list.
 
 Take a screenshot and read the result list.
 
 ### Step 3 — Evaluate Each Email
 
-Open each candidate email and determine if it is a **new print job request**. Load `references/email-detection-rules.md` for the full decision logic.
+Open each candidate email and determine if it is a **new print job request**. Load `references/email-detection-rules.md` for full decision logic.
 
-Quick filter — it IS a new job if the body contains:
+It IS a new job if the body contains:
 - Specific quantities, sizes, or materials
 - Request language: "could we please", "we need", "I need", "please print", "can you print"
-- Attachment (file to print)
+- An attachment (file to print)
 
 It is NOT a new job if:
 - Body is only a thank-you or pickup confirmation
 - Body is about billing, charges, claims, or payment
 - Body says "scratch", "cancel", or "never mind"
-- It is Michael's own forwarded email with no new client content
+- It is the user's own forwarded email with no new client content
 
 ### Step 4 — Star the Email
 
-For each confirmed print job email, star it in Gmail using the star icon (computer use click).
+For each confirmed print job email, click the star icon in Gmail.
 
 ### Step 5 — Extract Job Details
 
 From the email, extract every available field. Apply the confidence model:
 - **Certain** — explicitly stated → use it
-- **Probable** — strongly implied → note it, confirm with Michael before writing to Notion
-- **Unknown** — not present → apply default rule or flag for Michael
+- **Probable** — strongly implied → confirm with the user before writing
+- **Unknown** — not present → apply default rule or flag for the user
 
 Fields to extract (see `references/print-job-schema.md` for full schema and rules):
-- **Job** (title): item type + premium add-ons only. No size, quantity, or client name in the title.
+- **Job** (title): item type + premium add-ons only. No size, quantity, or client name.
 - **Client**: match to the Notion Clients database. If not found, create a new client page.
 - **Quantity**: plain integer
 - **Size**: must match an existing Notion option exactly
@@ -81,17 +86,15 @@ Fields to extract (see `references/print-job-schema.md` for full schema and rule
 - **Done**: always "Not started" for new jobs
 - **Cost per**: only if explicitly stated
 
-### Step 6 — Check Workload for Estimated Completion Date
+### Step 6 — Calculate Promised Date
 
-Before creating the Notion entry, query the Print Jobs tracker to count active jobs.
+Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `references/completion-date-logic.md` and apply the depth → business days table to set the Promised date for this job.
 
-Use the Notion MCP tool `notion-query-database-view` or `notion-fetch` on the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) to count jobs with status "Not started" or "In progress".
-
-Load `references/completion-date-logic.md` to calculate the estimated completion date based on current queue depth. This estimated date is what you will tell the client.
+If the email specified a due date, use that instead. If queue depth is 20+, flag to the user before proceeding.
 
 ### Step 7 — Run Pre-Flight Gate
 
-Before creating the Notion row, verify every item passes. Do not create a partial row.
+Before creating any Notion row, verify every item passes. Do not create a partial row.
 
 - [ ] Target is the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`)
 - [ ] Job, Client, Size, Quantity, Paper Type, Promised, Done are all non-empty
@@ -99,32 +102,37 @@ Before creating the Notion row, verify every item passes. Do not create a partia
 - [ ] Job title contains billing add-ons and excludes Size/Quantity/Client name
 - [ ] Rcvd = today; Promised = next business day 4 PM (or confirmed otherwise); Promised is not before Rcvd
 - [ ] No likely duplicate (same Client + Size + Quantity + Paper Type + Promised in last 30 days)
-- [ ] All Probable values were confirmed with Michael
+- [ ] All Probable values were confirmed with the user
 
-If any item fails: stop, flag the issue to Michael, and move to the next email. Do not create a guessed row.
+If any item fails: stop, flag the issue to the user, and move to the next email.
+
+### Step 7b — Confirm Before Write
+
+Show the user the extracted entry and wait for a go-ahead before writing to Notion. When processing multiple emails, batch them into one message:
+
+```
+Ready to log — confirm?
+
+  Client:   [Client]
+  Job:      [Job title]
+  Qty:      [Quantity] × [Size]
+  Paper:    [Paper Type]
+  Rcvd:     [date]
+  Promised: [date] at 4:00 PM
+  Status:   Not started
+
+Reply ✅ to log, or correct any field: "[field] = [value]"
+```
+
+Do not write to Notion until the user confirms.
 
 ### Step 8 — Create Notion Entry
 
-Use the Notion MCP to create a new page in the Print Jobs database with the validated fields.
+Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
-After creation, verify the returned values match the intended values. Fix any mismatch immediately.
+### Step 9 — Summary Report
 
-### Step 9 — Draft Client Reply in Gmail
-
-Return to the email in Gmail (computer use). Click Reply.
-
-Draft a short, professional reply in Michael's voice. Load `references/reply-template.md` for the exact format and tone.
-
-Key rules:
-- Address client by first name
-- Confirm the order briefly (item + quantity, no need to list every spec)
-- Give the estimated completion date/time calculated in Step 6
-- Sign as Michael
-- Do NOT click Send — leave as a draft for Michael to review
-
-### Step 10 — Summary Report
-
-After processing all emails, report to Michael:
+After processing all emails, report to the user:
 
 ```
 Morning Intake Complete — [date]
@@ -136,8 +144,6 @@ Morning Intake Complete — [date]
 Jobs created:
 - [Client] — [Job title] — Promised [date]
 - ...
-
-Drafts waiting in Gmail: [N]
 ```
 
 ## Important Rules
@@ -145,13 +151,11 @@ Drafts waiting in Gmail: [N]
 - Never create a Notion row while any required field is unknown and unconfirmed.
 - Never put Size, Quantity, or Client name in the Job title.
 - Never set a same-day Promised date by default.
-- Never send a reply — always leave as draft in current mode.
-- If an email is ambiguous, flag it in the summary and ask Michael rather than guessing.
-- If a client doesn't exist in Notion, create their Client page immediately (then remind Michael to add logo + cover image).
+- If an email is ambiguous, flag it in the summary and ask the user rather than guessing.
+- If a client doesn't exist in Notion, create their Client page immediately (then remind the user to add logo + cover image).
 
 ## Reference Files
 
 - `references/email-detection-rules.md` — known senders, keyword logic, negative signals
 - `references/print-job-schema.md` — full data model, job title rules, paper type decision tree, normalization
-- `references/completion-date-logic.md` — how to estimate completion date from queue depth
-- `references/reply-template.md` — Michael's reply voice, format, and examples
+- `references/completion-date-logic.md` — queue depth → Promised date calculation

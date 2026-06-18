@@ -1,26 +1,38 @@
 ---
 name: log-print-job
 description: >
-  This skill should be used when Michael says "log this job", "add this to the
+  This skill should be used when the user says "log this job", "add this to the
   tracker", "create a print job", "add a job", pastes email text and asks to
   log it, or says "new print job from [client]". It extracts job details from
   pasted email text or spoken specs, validates every field, and creates one
   correct row in the Notion Print Jobs tracker. No screen control needed —
   the user provides the email content directly.
 metadata:
-  version: "0.1.0"
-  author: "Go Postal"
+  version: "0.3.0"
+  author: "Print Job Intake Plugin"
 ---
 
 # Log Print Job
 
-Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — Michael provides the email text (or dictates the job details), and this skill handles extraction, validation, and Notion creation.
+## Before You Begin — Identity
+
+Check memory for the user's name and their company name. Substitute these throughout this skill wherever `[user's name]` and `[company name]` appear.
+
+- If the user's name is not in memory → ask.
+- If the company name is not in memory → ask.
+- Ask both in one message if neither is available.
+
+---
+
+Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — the user provides the email text (or dictates the job details), and this skill handles extraction, validation, and writing.
+
+> **Compatibility**: This skill works with any AI assistant. Steps 1–4 are pure reasoning — no tools required. Step 6 (Write) has two paths: API path (Notion MCP or equivalent) and Manual path (formatted output for the user to paste). Use whichever applies.
 
 ## When to Use This
 
-- Michael pastes an email body and says "log this"
-- Michael dictates: "Add a job for Loma Club — 35 laminated menus, 8.5x14, cardstock"
-- Michael wants to log a job without running the full morning intake routine
+- the user pastes an email body and says "log this"
+- the user dictates: "Add a job for Loma Club — 35 laminated menus, 8.5x14, cardstock"
+- the user wants to log a job without running the full morning intake routine
 
 ## Execution Steps
 
@@ -47,7 +59,7 @@ Load the full schema, rules, and normalization logic from the morning-intake ski
 
 ### 2. Ask for Missing Required Fields
 
-If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) is missing and no default applies, ask Michael in one message as a short checklist:
+If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) is missing and no default applies, ask the user in one message as a short checklist:
 
 - "Confirm size — I see 8.5x14, correct?"
 - "What paper type? (or should I use their default?)"
@@ -55,7 +67,33 @@ If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) 
 
 Ask the fewest questions possible. Group all clarifications into one message.
 
-### 3. Run Pre-Flight Gate
+### 3. Calculate Promised Date
+
+Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `skills/morning-intake/references/completion-date-logic.md` and apply the depth → business days table to set Promised.
+
+If the user stated a specific due date, use that instead. If queue depth is 20+, flag to the user before proceeding.
+
+### 4. Confirm Before Write
+
+Before touching the tracker, show the user a structured summary and wait for a go-ahead:
+
+```
+Ready to log — confirm?
+
+  Client:   [Client]
+  Job:      [Job title]
+  Qty:      [Quantity] × [Size]
+  Paper:    [Paper Type]
+  Rcvd:     [date]
+  Promised: [date] at 4:00 PM
+  Status:   Not started
+
+Reply ✅ to log, or correct any field: "[field] = [value]"
+```
+
+Do not write anything until the user confirms. If the user corrects a field, update it and re-show the summary.
+
+### 5. Run Pre-Flight Gate
 
 Before creating the row:
 
@@ -69,13 +107,30 @@ Before creating the row:
 
 If any box fails: stop and ask. Do not create a partial or guessed row.
 
-### 4. Create the Notion Entry
+### 6. Write to the Tracker
 
-Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`).
+**Path A — API access available** (Notion MCP or equivalent Notion integration):
+Create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
-After creation, verify the returned values match the intended values. Fix any mismatch immediately.
+**Path B — No API access** (plain chat, no tools):
+Output this block for the user to paste directly into Notion:
 
-### 5. Confirm to Michael
+```
+NEW PRINT JOB
+─────────────────────────────
+Job:        [Job title]
+Client:     [Client]
+Size:       [Size]
+Qty:        [Quantity]
+Paper Type: [Paper Type]
+Rcvd:       [date]
+Promised:   [date] 4:00 PM
+Done:       Not started
+Cost per:   [value or blank]
+─────────────────────────────
+```
+
+### 7. Confirm to the user
 
 Return a short confirmation:
 
@@ -90,7 +145,7 @@ Rcvd: [date]
 Promised: [date + time]
 Status: Not started
 
-→ [Notion link to the new job page]
+→ [Notion link to the new job page, if available]
 ```
 
 If a new client was created, add: "New client page created for [Client] — remember to add a logo and cover image."

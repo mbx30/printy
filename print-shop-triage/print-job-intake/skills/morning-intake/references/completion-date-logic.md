@@ -1,43 +1,33 @@
 # Completion Date Logic
 
-## How to Estimate
+Queue depth at the time of intake determines the **Promised** date written to Notion. This replaces the fixed "next business day" default — Promised is now always calculated, not assumed.
 
-Before creating each Notion entry, query the Print Jobs database for active jobs (status = "Not started" or "In progress"). Use this count to set the estimated completion date communicated to the client.
+## Step 1 — Query Queue Depth
 
-This estimated date is what goes in the client reply draft. The actual **Promised** field in Notion still defaults to next business day at 4:00 PM unless the client specifies otherwise — but the reply should reflect the realistic estimate based on workload.
-
-## Queue Depth → Estimated Completion
-
-| Active jobs (Not started + In progress) | Estimated completion |
-|-----------------------------------------|----------------------|
-| 0–3 | Same day (afternoon) or next business morning |
-| 4–7 | Next business day by 4 PM |
-| 8–12 | 2 business days |
-| 13–20 | 3 business days |
-| 20+ | Flag to Michael — do not auto-estimate |
-
-**Always use business days (Monday–Friday). Skip weekends.**
-
-## What to Tell the Client
-
-Translate the estimate into a specific, human-readable time. Examples:
-- "We'll have these ready by this afternoon."
-- "We'll have these ready tomorrow by 4 PM."
-- "We can have these ready by [day of week], [date]."
-
-Do not say "2 business days" — convert to an actual date.
-
-## Overrides
-
-If the client specifies a due date or urgency in the email ("need these by Friday", "RUSH", "can we get these by noon"):
-- Use their requested date as the Promised date in Notion.
-- In the reply, confirm that specific date: "We'll have these ready by [their date]."
-- If their date is same-day and the queue is heavy, flag it to Michael instead of confirming automatically.
-
-## Querying Active Jobs
-
-Use the Notion MCP to query the Print Jobs database and filter for:
-- Done = "Not started"
+Use the Notion MCP to query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) and count jobs where:
+- Done = "Not started"  
 - Done = "In progress"
 
-Count the results to determine queue depth, then apply the table above.
+## Step 2 — Map Depth to Business Days Out
+
+| Active jobs | Business days out | Example (received Monday) |
+|-------------|------------------|--------------------------|
+| 0–7         | 1 (tomorrow)     | Tuesday at 4:00 PM       |
+| 8–12        | 2                | Wednesday at 4:00 PM     |
+| 13–20       | 3                | Thursday at 4:00 PM      |
+| 20+         | Flag to the user  | Do not auto-set Promised |
+
+**Business days = Monday–Friday. Skip Saturday and Sunday.**
+
+To calculate "N business days from today":
+1. Start from today (America/Los_Angeles).
+2. Count forward N weekdays, skipping Saturday and Sunday.
+3. Set Promised to that date at 4:00 PM (America/Los_Angeles).
+
+## Step 3 — Client Overrides
+
+If the email specifies a due date or urgency ("need these by Friday", "RUSH", "can we get these by noon"):
+- Use the client's requested date as Promised.
+- If their date is same-day and queue depth is 8+, flag to the user rather than confirming automatically.
+
+For ambiguous deadline language, the queue-based calculation is still the default — see the decision table in `print-job-schema.md`. "No rush", "whenever", and "for today" all resolve to the queue calculation, never same-day.

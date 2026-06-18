@@ -5,6 +5,8 @@
 - **Print Jobs database ID**: `32c9cb079ddb807eba29dd54fee53aac`
 - **Clients database ID**: `2ee9cb079ddb809d81f2fa9a9c2a35d3`
 - Always verify the live schema before writing — option sets (Size, Paper Type, Done) can change.
+- **With Notion API access**: fetch the database schema at session start to get the current option sets. Inject the live values as the authoritative list, superseding anything in this document.
+- **Without API access**: if a value you're about to write is not listed in this document, ask the user: "Is '[value]' a valid [Size/Paper Type] option in Notion right now?"
 
 ## Data Model
 
@@ -23,7 +25,10 @@ Write only these properties using exact live schema names (case-sensitive):
 | Done | Status | Yes | Default: Not started |
 | File | Files | No | Attach or note link in job page body |
 
-**Properties that do NOT exist** (never write to these): Notes, Total, RCVD ON. Operational notes go in the job page body; cost lives in "Cost per"; received date lives in "Rcvd".
+⛔ **THESE PROPERTIES DO NOT EXIST — never write to them**: Notes, Total, RCVD ON, Instructions, Comments.
+- Operational notes → job page **body** (not a property)
+- Batch total → confirm per-unit with the user, then write to "Cost per"
+- Received date → "Rcvd" (not "RCVD ON")
 
 ## Job Title Rules
 
@@ -35,12 +40,18 @@ The Job title carries every spec not covered by another column.
 
 **Always Title Case.**
 
+**IRON RULE: If you catch yourself typing a number or a dimension in the Job field, stop and remove it.**
+
 **Examples from real jobs**:
 - "Laminated Menus" ✅ (lamination is a premium add-on)
 - "DS Laminated Food Menu" ✅ (double-sided + laminated)
 - "Menus Doublesided" ✅
-- "Menu Print; Lamination" ✅
+- "Menu Print; Lamination" ✅ (billing add-on belongs in title, not a Notes property)
 - "Framed Poster Print; Sent to ARC" ✅ (ARC = outsourced vendor note)
+- "All Day Menus; Laminated" ✅
+- "8.5x14 All Day Menus (35)" ❌ (size AND quantity in title)
+- "200 11x17 Venue Posters" ❌ (quantity AND size in title)
+- "Loma Club Laminated Menus" ❌ (client name in title)
 - "11x17 Menus" ❌ (size in title)
 - "50 Menus" ❌ (quantity in title)
 
@@ -67,17 +78,36 @@ The Job title carries every spec not covered by another column.
 - Date-only value (no time).
 
 ### Promised (required every time)
-- Default: next business day at 4:00 PM (America/Los_Angeles).
-- Never same-day by default.
+- **Always calculated from queue depth** — see `completion-date-logic.md`. Never use a fixed "next business day" default.
+- Query the Print Jobs database for active jobs (Not started + In progress), then apply the depth → days table in `completion-date-logic.md`.
+- Default outcome is tomorrow at 4:00 PM (1 business day out) when the queue is light (0–7 jobs).
+- If the email states a specific date or time, use that instead (client override).
+- Always a datetime: date + 4:00 PM unless the client states a specific time.
 - Business days: Monday–Friday. Skip Saturday and Sunday.
-- If the email states a specific pickup time, use that.
-- Always a datetime: date + 4:00 PM unless user states a specific time.
+
+**Ambiguous deadline decision table** — apply before writing Promised:
+
+| User says… | Promised |
+|------------|---------|
+| "no rush" / "whenever" | Queue-based calculation (completion-date-logic.md) |
+| "for today" / urgency language | Queue-based calculation (NEVER same day) |
+| "for the weekend" | Monday at 4:00 PM minimum; push further if queue requires |
+| Job placed on Friday | Monday at 4:00 PM minimum; push further if queue requires |
+| Specific date given | That date at 4:00 PM |
+
+**IRON RULE: Never set Promised = today by default, regardless of urgency language.**
 
 ## Paper Type Decision Tree
 
 1. Explicitly stated in email → use it.
-2. Client page has a Default Paper Type → propose it and require Michael's confirmation before writing.
-3. Neither → ask Michael.
+2. Client page has a Default Paper Type → propose it and require the user's confirmation before writing.
+3. Neither → ask the user.
+
+**Synonym normalization** — accept these common variants:
+- "textweight" / "text weight" / "text stock" → Text
+- "card stock" / "cardstock" → Cardstock
+
+**Never invent a Paper Type not in the live schema. If unsure → ask the user.**
 
 **Known mappings from real jobs**:
 - "Regular posters" → Text
@@ -96,20 +126,28 @@ The Job title carries every spec not covered by another column.
 ## Size Normalization
 
 The live Size option set has inconsistent spacing — match exactly:
-- `5 x 8` and `5.5 x 8.5` include spaces
-- `8.5x11`, `8.5x14`, `4.25x11` do not
+- `5 x 8` and `5.5 x 8.5` **include spaces**
+- `8.5x11`, `8.5x14`, `4.25x11`, `4x6`, `11x17` do **not**
 
-Accept: `11x17`, `11 x 17`, `11×17` → normalize to `11x17`.
-Accept: `8.5x11` / `letter` → `8.5x11`.
-Accept: `A5` → `A5`, `A4` → `A4`.
+⚠️ **Critical spacing quirks — these exact strings must be used**:
 
-If no exact option matches → ask Michael to pick from valid options. Never invent a new size.
+| User types | Canonical value |
+|------------|----------------|
+| `5x8` / `5 x 8` | `5 x 8` (spaces required) |
+| `5.5x8.5` / `5.5 x 8.5` | `5.5 x 8.5` (spaces required) |
+| `4x6` / `4 x 6` | `4x6` (no spaces) |
+| `11x17` / `11 x 17` / `11×17` | `11x17` |
+| `8.5x11` / `letter` | `8.5x11` |
+| `A5` | `A5` |
+| `A4` | `A4` |
+
+**If no exact option matches after normalization → ask the user. Never invent a new size option.**
 
 ## Client Resolution
 
 - Client exists in Notion → relate it.
 - Client does not exist → create a new Client page immediately (no confirmation), then relate it.
-- After creating a new client: remind Michael to add a logo and cover image.
+- After creating a new client: remind the user to add a logo and cover image.
 
 ### Client Page Structure (canonical layout)
 
@@ -121,21 +159,37 @@ Every client page uses this exact structure (H2 headings):
 
 ### Known Client List (current as of June 2026)
 
-Siamo Napoli, Kettner Exchange, Whaling Bar, Loma Club, Queenstown Public House, Barra Oliba, Prohibition Bar, Firehouse, Vinarius, Hob Nob Hill, Music Box, Coco Maya, Crudo, Harbor City Church, La Jolla Tennis Lessons, Bandar, Remedy Pharmacy, Belly Up (MBX), Grass Skirt, Queenstown Bistro, Vin De Syrah, Captain's Quarters, Devil's Dozen, The Waverly, Pappalecco, Coastlands Community Church, Dunedin, Carté, Civico 1845, Isola, Maison Amani, Buona Forchetta, MEZE, Rubicon Deli, Clean Edge Technologies, Adelman Fine Art, Havana 1920, FMS Solutions, City Life Church, Rancho Del Mar Association, Dropkick Coffee, Go Postal, El Chingon, Pecoraro Painting, Loré Experiential, Harbor Breakfast, Colrich, Nolita Hall, Bencotto, Park 101, Bri Rahoy (Grind & Prosper), Carnitas Snack Shop, Pazza Market & Cucina, Jeevan Productions
+Siamo Napoli, Kettner Exchange, Whaling Bar, Loma Club, Queenstown Public House, Barra Oliba, Prohibition Bar, Firehouse, Vinarius, Hob Nob Hill, Music Box, Coco Maya, Crudo, Harbor City Church, La Jolla Tennis Lessons, Bandar, Remedy Pharmacy, Belly Up (MBX), Grass Skirt, Queenstown Bistro, Vin De Syrah, Captain's Quarters, Devil's Dozen, The Waverly, Pappalecco, Coastlands Community Church, Dunedin, Carté, Civico 1845, Isola, Maison Amani, Buona Forchetta, MEZE, Rubicon Deli, Clean Edge Technologies, Adelman Fine Art, Havana 1920, FMS Solutions, City Life Church, Rancho Del Mar Association, Dropkick Coffee, [company name], El Chingon, Pecoraro Painting, Loré Experiential, Harbor Breakfast, Colrich, Nolita Hall, Bencotto, Park 101, Bri Rahoy (Grind & Prosper), Carnitas Snack Shop, Pazza Market & Cucina, Jeevan Productions
 
 ## Confidence Model
 
 Tag each extracted value before writing:
 
 - **Certain** — explicitly stated and unambiguous → use it
-- **Probable** — strongly implied but could be wrong → confirm with Michael before writing
+- **Probable** — strongly implied but could be wrong → confirm with the user before writing
 - **Unknown** — not present → apply default rule or ask
 
 Never promote Probable → Certain without confirmation. "Same as last time" with no stated specs is Unknown — ask, do not copy a prior job.
 
+**These phrases ALWAYS = Probable, never Certain. Always confirm before writing:**
+- "same as always" / "same as last time" / "usual"
+- "standard" / "regular stock"
+- "you know what we use"
+- Paper omitted + client has a default → Probable (propose it and require confirmation)
+
+Confirmation format: "I see [Client] usually uses [Paper Type] — confirm?"
+Do NOT write the value until the user replies yes.
+
 ## Duplicate Check
 
-Before creating, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask Michael, "A similar job exists (received [date]). Create a new one anyway?"
+Before creating **any** row, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask the user, "A similar job exists (received [date]). Create a new one anyway?"
+
+**Extra vigilance for recurring clients** — do not skip the scan even if the user says "same as last week":
+- Harbor City Church (weekly bulletins)
+- Music Box (monthly poster batches)
+- Any client + job type combination you've seen in the last 30 days
+
+If a match exists → ask before creating. Never silently create a second row for a recurring job.
 
 ## Forbidden Patterns
 

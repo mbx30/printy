@@ -2,7 +2,7 @@
 
 ## Gmail Account
 
-- **Account**: gopostalsd@gmail.com
+- **Account**: [user's Gmail account] — check memory or ask before running
 - **Target**: unread emails that contain new print job requests
 
 ## Known Client Senders
@@ -50,14 +50,14 @@ An email is NOT a new job if the body is primarily:
 - Billing or payment: "charge", "charges", "invoice", "billing", "payment", "claim"
 - Cancellation: "scratch this", "cancel", "never mind", "we had it printed"
 - A status check: "ready?", "is it ready", "when will it be ready"
-- Michael's own outgoing email (From: gopostalsd@gmail.com or gopostal28@gmail.com)
+- The user's own outgoing email (From: [user's Gmail account] or any other known outgoing address)
 
 ## Ambiguous Cases
 
 If an email matches positive keywords but the body is unclear or missing specs:
 - Flag it in the summary report
 - Do NOT create a Notion entry
-- Note it for Michael to review manually
+- Note it for the user to review manually
 
 ## Gmail Search Query
 
