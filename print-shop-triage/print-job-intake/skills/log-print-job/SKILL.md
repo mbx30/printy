@@ -110,7 +110,21 @@ If any box fails: stop and ask. Do not create a partial or guessed row.
 ### 6. Write to the Tracker
 
 **Path A — API access available** (Notion MCP or equivalent Notion integration):
-Create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
+
+Use the `notion-create-pages` tool to create a new page. Load the detailed format guide at `references/notion-api-examples.md` for the exact JSON structure required.
+
+**Critical**: The `pages` parameter MUST be an array containing your properties object. Do not omit it.
+
+Quick checklist before calling the tool:
+- [ ] All required fields populated (Job, Client ID, Size, Quantity, Paper Type, Promised, Done)
+- [ ] Client page ID looked up from Clients database (`2ee9cb079ddb809d81f2fa9a9c2a35d3`)
+- [ ] Size matches live option exactly (e.g., `8.5x11` or `5 x 8` with correct spacing)
+- [ ] Paper Type matches live multi-select option
+- [ ] Done = "Not started"
+- [ ] Promised date is YYYY-MM-DD format, not before Rcvd
+- [ ] `pages` array is not empty and wraps all properties
+
+After creation, verify the returned page ID and properties match what you sent. Fix any mismatch immediately.
 
 **Path B — No API access** (plain chat, no tools):
 Output this block for the user to paste directly into Notion:
@@ -159,7 +173,7 @@ If a new client was created, add: "New client page created for [Client] — reme
 - "Same as last time" with no stated specs = Unknown. Ask, don't copy.
 - For Music Box jobs, apply the Music Box naming convention (see print-job-schema.md).
 
-## Schema Reference
+## Reference Files
 
-Full data model, job title rules, paper type decision tree, size normalization, and client page layout:
-→ `skills/morning-intake/references/print-job-schema.md`
+- `references/notion-api-examples.md` — Exact JSON format for `notion-create-pages` calls (required before writing)
+- `skills/morning-intake/references/print-job-schema.md` — Full data model, job title rules, paper type decision tree, size normalization, and client page layout
