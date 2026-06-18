@@ -23,7 +23,10 @@ Write only these properties using exact live schema names (case-sensitive):
 | Done | Status | Yes | Default: Not started |
 | File | Files | No | Attach or note link in job page body |
 
-**Properties that do NOT exist** (never write to these): Notes, Total, RCVD ON. Operational notes go in the job page body; cost lives in "Cost per"; received date lives in "Rcvd".
+⛔ **THESE PROPERTIES DO NOT EXIST — never write to them**: Notes, Total, RCVD ON, Instructions, Comments.
+- Operational notes → job page **body** (not a property)
+- Batch total → confirm per-unit with Michael, then write to "Cost per"
+- Received date → "Rcvd" (not "RCVD ON")
 
 ## Job Title Rules
 
@@ -35,12 +38,18 @@ The Job title carries every spec not covered by another column.
 
 **Always Title Case.**
 
+**IRON RULE: If you catch yourself typing a number or a dimension in the Job field, stop and remove it.**
+
 **Examples from real jobs**:
 - "Laminated Menus" ✅ (lamination is a premium add-on)
 - "DS Laminated Food Menu" ✅ (double-sided + laminated)
 - "Menus Doublesided" ✅
-- "Menu Print; Lamination" ✅
+- "Menu Print; Lamination" ✅ (billing add-on belongs in title, not a Notes property)
 - "Framed Poster Print; Sent to ARC" ✅ (ARC = outsourced vendor note)
+- "All Day Menus; Laminated" ✅
+- "8.5x14 All Day Menus (35)" ❌ (size AND quantity in title)
+- "200 11x17 Venue Posters" ❌ (quantity AND size in title)
+- "Loma Club Laminated Menus" ❌ (client name in title)
 - "11x17 Menus" ❌ (size in title)
 - "50 Menus" ❌ (quantity in title)
 
@@ -73,11 +82,29 @@ The Job title carries every spec not covered by another column.
 - If the email states a specific pickup time, use that.
 - Always a datetime: date + 4:00 PM unless user states a specific time.
 
+**Ambiguous deadline decision table** — apply before writing Promised:
+
+| User says… | Promised default |
+|------------|-----------------|
+| "no rush" / "whenever" | Next business day at 4:00 PM |
+| "for today" / urgency language | Next business day at 4:00 PM (NEVER same day) |
+| "for the weekend" | Monday at 4:00 PM |
+| Job placed on Friday | Monday at 4:00 PM (skip weekend) |
+| Specific date given | That date at 4:00 PM |
+
+**IRON RULE: Never set Promised = today by default, regardless of urgency language.**
+
 ## Paper Type Decision Tree
 
 1. Explicitly stated in email → use it.
 2. Client page has a Default Paper Type → propose it and require Michael's confirmation before writing.
 3. Neither → ask Michael.
+
+**Synonym normalization** — accept these common variants:
+- "textweight" / "text weight" / "text stock" → Text
+- "card stock" / "cardstock" → Cardstock
+
+**Never invent a Paper Type not in the live schema. If unsure → ask Michael.**
 
 **Known mappings from real jobs**:
 - "Regular posters" → Text
@@ -96,14 +123,22 @@ The Job title carries every spec not covered by another column.
 ## Size Normalization
 
 The live Size option set has inconsistent spacing — match exactly:
-- `5 x 8` and `5.5 x 8.5` include spaces
-- `8.5x11`, `8.5x14`, `4.25x11` do not
+- `5 x 8` and `5.5 x 8.5` **include spaces**
+- `8.5x11`, `8.5x14`, `4.25x11`, `4x6`, `11x17` do **not**
 
-Accept: `11x17`, `11 x 17`, `11×17` → normalize to `11x17`.
-Accept: `8.5x11` / `letter` → `8.5x11`.
-Accept: `A5` → `A5`, `A4` → `A4`.
+⚠️ **Critical spacing quirks — these exact strings must be used**:
 
-If no exact option matches → ask Michael to pick from valid options. Never invent a new size.
+| User types | Canonical value |
+|------------|----------------|
+| `5x8` / `5 x 8` | `5 x 8` (spaces required) |
+| `5.5x8.5` / `5.5 x 8.5` | `5.5 x 8.5` (spaces required) |
+| `4x6` / `4 x 6` | `4x6` (no spaces) |
+| `11x17` / `11 x 17` / `11×17` | `11x17` |
+| `8.5x11` / `letter` | `8.5x11` |
+| `A5` | `A5` |
+| `A4` | `A4` |
+
+**If no exact option matches after normalization → ask Michael. Never invent a new size option.**
 
 ## Client Resolution
 
@@ -133,9 +168,25 @@ Tag each extracted value before writing:
 
 Never promote Probable → Certain without confirmation. "Same as last time" with no stated specs is Unknown — ask, do not copy a prior job.
 
+**These phrases ALWAYS = Probable, never Certain. Always confirm before writing:**
+- "same as always" / "same as last time" / "usual"
+- "standard" / "regular stock"
+- "you know what we use"
+- Paper omitted + client has a default → Probable (propose it and require confirmation)
+
+Confirmation format: "I see [Client] usually uses [Paper Type] — confirm?"
+Do NOT write the value until Michael replies yes.
+
 ## Duplicate Check
 
-Before creating, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask Michael, "A similar job exists (received [date]). Create a new one anyway?"
+Before creating **any** row, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask Michael, "A similar job exists (received [date]). Create a new one anyway?"
+
+**Extra vigilance for recurring clients** — do not skip the scan even if Michael says "same as last week":
+- Harbor City Church (weekly bulletins)
+- Music Box (monthly poster batches)
+- Any client + job type combination you've seen in the last 30 days
+
+If a match exists → ask before creating. Never silently create a second row for a recurring job.
 
 ## Forbidden Patterns
 
