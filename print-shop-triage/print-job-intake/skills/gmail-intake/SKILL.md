@@ -8,13 +8,25 @@ description: >
   orders". Reads Gmail via API, logs jobs to Notion, and creates reply drafts —
   all without touching the screen.
 metadata:
-  version: "1.1.0"
-  author: "Go Postal"
+  version: "1.2.0"
+  author: "Print Job Intake Plugin"
 ---
 
 # Gmail Intake Routine
 
-API-based morning intake for Go Postal. Identical workflow logic to `morning-intake` but driven entirely by Gmail MCP tools instead of screen control. Anyone with Gmail MCP and Notion MCP connected can run this skill without computer use.
+## Before You Begin — Identity
+
+Check memory for the user's name and their company name. Substitute these throughout this skill wherever `[user's name]` and `[company name]` appear.
+
+- If the user's name is not in memory → ask.
+- If the company name is not in memory → ask.
+- Ask both in one message if neither is available.
+
+Also confirm the user's Gmail account address before Step 1. Check memory first; if not found, ask.
+
+---
+
+API-based morning intake. Identical workflow logic to `morning-intake` but driven entirely by Gmail MCP tools instead of screen control. Anyone with Gmail MCP and Notion MCP connected can run this skill without computer use.
 
 **Tools required**: Gmail MCP (`mcp__Gmail__*`) · Notion MCP (`mcp__Notion__*`)
 
@@ -24,7 +36,7 @@ API-based morning intake for Go Postal. Identical workflow logic to `morning-int
 
 ### Step 1 — Verify Gmail Account
 
-Call `mcp__Gmail__search_threads` with `query: "label:inbox"` as a test. Confirm responses are coming from `gopostalsd@gmail.com`. If credentials point to a different account, stop and alert the user before proceeding.
+Call `mcp__Gmail__search_threads` with `query: "label:inbox"` as a test. Confirm responses are coming from `[user's Gmail account]`. If credentials point to a different account, stop and alert the user before proceeding.
 
 ### Step 2 — Search for New Print Job Emails
 
@@ -98,7 +110,7 @@ Use the Notion MCP to query the Print Jobs database (`32c9cb079ddb807eba29dd54fe
 
 Load `../morning-intake/references/completion-date-logic.md` and apply the depth → business days table. The result sets the **Promised** date written to Notion and is also used as the completion date in the client reply draft.
 
-If the email specified a due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
+If the email specified a due date, use that instead. If queue depth is 20+, flag to the user before proceeding.
 
 ### Step 7 — Run Pre-Flight Gate
 
@@ -155,7 +167,7 @@ Draft content rules (load `../morning-intake/references/reply-template.md`):
 - Address client by first name
 - Confirm the order briefly (item + quantity)
 - Give the estimated completion date/time from Step 6
-- Sign as Michael
+- Sign as the user
 
 ### Step 10 — Summary Report
 

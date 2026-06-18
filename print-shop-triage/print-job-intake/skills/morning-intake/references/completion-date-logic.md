@@ -15,7 +15,7 @@ Use the Notion MCP to query the Print Jobs database (`32c9cb079ddb807eba29dd54fe
 | 0–7         | 1 (tomorrow)     | Tuesday at 4:00 PM       |
 | 8–12        | 2                | Wednesday at 4:00 PM     |
 | 13–20       | 3                | Thursday at 4:00 PM      |
-| 20+         | Flag to Michael  | Do not auto-set Promised |
+| 20+         | Flag to the user  | Do not auto-set Promised |
 
 **Business days = Monday–Friday. Skip Saturday and Sunday.**
 
@@ -28,6 +28,6 @@ To calculate "N business days from today":
 
 If the email specifies a due date or urgency ("need these by Friday", "RUSH", "can we get these by noon"):
 - Use the client's requested date as Promised.
-- If their date is same-day and queue depth is 8+, flag to Michael rather than confirming automatically.
+- If their date is same-day and queue depth is 8+, flag to the user rather than confirming automatically.
 
 For ambiguous deadline language, the queue-based calculation is still the default — see the decision table in `print-job-schema.md`. "No rush", "whenever", and "for today" all resolve to the queue calculation, never same-day.

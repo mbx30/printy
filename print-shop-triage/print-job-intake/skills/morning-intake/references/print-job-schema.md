@@ -6,7 +6,7 @@
 - **Clients database ID**: `2ee9cb079ddb809d81f2fa9a9c2a35d3`
 - Always verify the live schema before writing — option sets (Size, Paper Type, Done) can change.
 - **With Notion API access**: fetch the database schema at session start to get the current option sets. Inject the live values as the authoritative list, superseding anything in this document.
-- **Without API access**: if a value you're about to write is not listed in this document, ask Michael: "Is '[value]' a valid [Size/Paper Type] option in Notion right now?"
+- **Without API access**: if a value you're about to write is not listed in this document, ask the user: "Is '[value]' a valid [Size/Paper Type] option in Notion right now?"
 
 ## Data Model
 
@@ -27,7 +27,7 @@ Write only these properties using exact live schema names (case-sensitive):
 
 ⛔ **THESE PROPERTIES DO NOT EXIST — never write to them**: Notes, Total, RCVD ON, Instructions, Comments.
 - Operational notes → job page **body** (not a property)
-- Batch total → confirm per-unit with Michael, then write to "Cost per"
+- Batch total → confirm per-unit with the user, then write to "Cost per"
 - Received date → "Rcvd" (not "RCVD ON")
 
 ## Job Title Rules
@@ -100,14 +100,14 @@ The Job title carries every spec not covered by another column.
 ## Paper Type Decision Tree
 
 1. Explicitly stated in email → use it.
-2. Client page has a Default Paper Type → propose it and require Michael's confirmation before writing.
-3. Neither → ask Michael.
+2. Client page has a Default Paper Type → propose it and require the user's confirmation before writing.
+3. Neither → ask the user.
 
 **Synonym normalization** — accept these common variants:
 - "textweight" / "text weight" / "text stock" → Text
 - "card stock" / "cardstock" → Cardstock
 
-**Never invent a Paper Type not in the live schema. If unsure → ask Michael.**
+**Never invent a Paper Type not in the live schema. If unsure → ask the user.**
 
 **Known mappings from real jobs**:
 - "Regular posters" → Text
@@ -141,13 +141,13 @@ The live Size option set has inconsistent spacing — match exactly:
 | `A5` | `A5` |
 | `A4` | `A4` |
 
-**If no exact option matches after normalization → ask Michael. Never invent a new size option.**
+**If no exact option matches after normalization → ask the user. Never invent a new size option.**
 
 ## Client Resolution
 
 - Client exists in Notion → relate it.
 - Client does not exist → create a new Client page immediately (no confirmation), then relate it.
-- After creating a new client: remind Michael to add a logo and cover image.
+- After creating a new client: remind the user to add a logo and cover image.
 
 ### Client Page Structure (canonical layout)
 
@@ -159,14 +159,14 @@ Every client page uses this exact structure (H2 headings):
 
 ### Known Client List (current as of June 2026)
 
-Siamo Napoli, Kettner Exchange, Whaling Bar, Loma Club, Queenstown Public House, Barra Oliba, Prohibition Bar, Firehouse, Vinarius, Hob Nob Hill, Music Box, Coco Maya, Crudo, Harbor City Church, La Jolla Tennis Lessons, Bandar, Remedy Pharmacy, Belly Up (MBX), Grass Skirt, Queenstown Bistro, Vin De Syrah, Captain's Quarters, Devil's Dozen, The Waverly, Pappalecco, Coastlands Community Church, Dunedin, Carté, Civico 1845, Isola, Maison Amani, Buona Forchetta, MEZE, Rubicon Deli, Clean Edge Technologies, Adelman Fine Art, Havana 1920, FMS Solutions, City Life Church, Rancho Del Mar Association, Dropkick Coffee, Go Postal, El Chingon, Pecoraro Painting, Loré Experiential, Harbor Breakfast, Colrich, Nolita Hall, Bencotto, Park 101, Bri Rahoy (Grind & Prosper), Carnitas Snack Shop, Pazza Market & Cucina, Jeevan Productions
+Siamo Napoli, Kettner Exchange, Whaling Bar, Loma Club, Queenstown Public House, Barra Oliba, Prohibition Bar, Firehouse, Vinarius, Hob Nob Hill, Music Box, Coco Maya, Crudo, Harbor City Church, La Jolla Tennis Lessons, Bandar, Remedy Pharmacy, Belly Up (MBX), Grass Skirt, Queenstown Bistro, Vin De Syrah, Captain's Quarters, Devil's Dozen, The Waverly, Pappalecco, Coastlands Community Church, Dunedin, Carté, Civico 1845, Isola, Maison Amani, Buona Forchetta, MEZE, Rubicon Deli, Clean Edge Technologies, Adelman Fine Art, Havana 1920, FMS Solutions, City Life Church, Rancho Del Mar Association, Dropkick Coffee, [company name], El Chingon, Pecoraro Painting, Loré Experiential, Harbor Breakfast, Colrich, Nolita Hall, Bencotto, Park 101, Bri Rahoy (Grind & Prosper), Carnitas Snack Shop, Pazza Market & Cucina, Jeevan Productions
 
 ## Confidence Model
 
 Tag each extracted value before writing:
 
 - **Certain** — explicitly stated and unambiguous → use it
-- **Probable** — strongly implied but could be wrong → confirm with Michael before writing
+- **Probable** — strongly implied but could be wrong → confirm with the user before writing
 - **Unknown** — not present → apply default rule or ask
 
 Never promote Probable → Certain without confirmation. "Same as last time" with no stated specs is Unknown — ask, do not copy a prior job.
@@ -178,13 +178,13 @@ Never promote Probable → Certain without confirmation. "Same as last time" wit
 - Paper omitted + client has a default → Probable (propose it and require confirmation)
 
 Confirmation format: "I see [Client] usually uses [Paper Type] — confirm?"
-Do NOT write the value until Michael replies yes.
+Do NOT write the value until the user replies yes.
 
 ## Duplicate Check
 
-Before creating **any** row, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask Michael, "A similar job exists (received [date]). Create a new one anyway?"
+Before creating **any** row, scan recent jobs (~last 30 days) for the same Client + Size + Quantity + Paper Type + Promised. If a likely duplicate exists: ask the user, "A similar job exists (received [date]). Create a new one anyway?"
 
-**Extra vigilance for recurring clients** — do not skip the scan even if Michael says "same as last week":
+**Extra vigilance for recurring clients** — do not skip the scan even if the user says "same as last week":
 - Harbor City Church (weekly bulletins)
 - Music Box (monthly poster batches)
 - Any client + job type combination you've seen in the last 30 days

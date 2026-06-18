@@ -1,28 +1,38 @@
 ---
 name: log-print-job
 description: >
-  This skill should be used when Michael says "log this job", "add this to the
+  This skill should be used when the user says "log this job", "add this to the
   tracker", "create a print job", "add a job", pastes email text and asks to
   log it, or says "new print job from [client]". It extracts job details from
   pasted email text or spoken specs, validates every field, and creates one
   correct row in the Notion Print Jobs tracker. No screen control needed —
   the user provides the email content directly.
 metadata:
-  version: "0.2.0"
-  author: "Go Postal"
+  version: "0.3.0"
+  author: "Print Job Intake Plugin"
 ---
 
 # Log Print Job
 
-Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — Michael provides the email text (or dictates the job details), and this skill handles extraction, validation, and writing.
+## Before You Begin — Identity
 
-> **Compatibility**: This skill works with any AI assistant. Steps 1–4 are pure reasoning — no tools required. Step 5 (Write) has two paths: API path (Notion MCP or equivalent) and Manual path (formatted output for Michael to paste). Use whichever applies.
+Check memory for the user's name and their company name. Substitute these throughout this skill wherever `[user's name]` and `[company name]` appear.
+
+- If the user's name is not in memory → ask.
+- If the company name is not in memory → ask.
+- Ask both in one message if neither is available.
+
+---
+
+Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — the user provides the email text (or dictates the job details), and this skill handles extraction, validation, and writing.
+
+> **Compatibility**: This skill works with any AI assistant. Steps 1–4 are pure reasoning — no tools required. Step 6 (Write) has two paths: API path (Notion MCP or equivalent) and Manual path (formatted output for the user to paste). Use whichever applies.
 
 ## When to Use This
 
-- Michael pastes an email body and says "log this"
-- Michael dictates: "Add a job for Loma Club — 35 laminated menus, 8.5x14, cardstock"
-- Michael wants to log a job without running the full morning intake routine
+- the user pastes an email body and says "log this"
+- the user dictates: "Add a job for Loma Club — 35 laminated menus, 8.5x14, cardstock"
+- the user wants to log a job without running the full morning intake routine
 
 ## Execution Steps
 
@@ -49,7 +59,7 @@ Load the full schema, rules, and normalization logic from the morning-intake ski
 
 ### 2. Ask for Missing Required Fields
 
-If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) is missing and no default applies, ask Michael in one message as a short checklist:
+If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) is missing and no default applies, ask the user in one message as a short checklist:
 
 - "Confirm size — I see 8.5x14, correct?"
 - "What paper type? (or should I use their default?)"
@@ -61,11 +71,11 @@ Ask the fewest questions possible. Group all clarifications into one message.
 
 Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `skills/morning-intake/references/completion-date-logic.md` and apply the depth → business days table to set Promised.
 
-If Michael stated a specific due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
+If the user stated a specific due date, use that instead. If queue depth is 20+, flag to the user before proceeding.
 
 ### 4. Confirm Before Write
 
-Before touching the tracker, show Michael a structured summary and wait for a go-ahead:
+Before touching the tracker, show the user a structured summary and wait for a go-ahead:
 
 ```
 Ready to log — confirm?
@@ -81,7 +91,7 @@ Ready to log — confirm?
 Reply ✅ to log, or correct any field: "[field] = [value]"
 ```
 
-Do not write anything until Michael confirms. If Michael corrects a field, update it and re-show the summary.
+Do not write anything until the user confirms. If the user corrects a field, update it and re-show the summary.
 
 ### 5. Run Pre-Flight Gate
 
@@ -103,7 +113,7 @@ If any box fails: stop and ask. Do not create a partial or guessed row.
 Create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
 **Path B — No API access** (plain chat, no tools):
-Output this block for Michael to paste directly into Notion:
+Output this block for the user to paste directly into Notion:
 
 ```
 NEW PRINT JOB
@@ -120,7 +130,7 @@ Cost per:   [value or blank]
 ─────────────────────────────
 ```
 
-### 7. Confirm to Michael
+### 7. Confirm to the user
 
 Return a short confirmation:
 

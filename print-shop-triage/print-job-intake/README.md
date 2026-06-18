@@ -1,10 +1,12 @@
-# Go Postal — Print Job Intake Plugin
+# Print Job Intake Plugin
 
-Automates the morning print job intake routine for Go Postal (gopostalsd@gmail.com). Sweeps Gmail for new print orders, creates entries in the Notion Print Jobs tracker, and drafts client confirmation replies.
+Automates the morning print job intake routine for a print shop. Sweeps Gmail for new print orders, creates entries in the Notion Print Jobs tracker, and drafts client confirmation replies.
+
+> **Identity**: Skills in this plugin read the user's name and company name from memory at startup. If neither is stored, they will ask before proceeding.
 
 ## Skills
 
-### `morning-intake` — Morning Routine
+### `morning-intake` — Morning Routine (Computer Use)
 
 Run each morning when you arrive at the office.
 
@@ -16,11 +18,22 @@ Run each morning when you arrive at the office.
 3. Evaluates each email to confirm it's a genuine new job (not a thank-you, billing email, or cancellation)
 4. Stars confirmed print job emails
 5. Extracts job specs (client, quantity, size, paper type, etc.)
-6. Checks the Notion queue to estimate the completion date
+6. Queries the Notion queue to calculate the Promised date
 7. Creates a row in the Print Jobs tracker with all validated fields
-8. Drafts a short confirmation reply in Gmail for Michael to review and send
 
-**Current mode**: Draft (replies are saved as Gmail drafts, not sent automatically). Switch to auto-send after proving reliability.
+**Tools required**: Computer use · Notion MCP
+
+---
+
+### `gmail-intake` — Morning Routine (Gmail MCP)
+
+API-based alternative to `morning-intake` for environments without computer use (e.g. handoff to another team member via chat interface).
+
+**Trigger phrases**: same as morning-intake
+
+**What it does**: Same workflow as morning-intake plus client reply drafts, driven entirely by Gmail MCP and Notion MCP — no screen control needed.
+
+**Tools required**: Gmail MCP · Notion MCP
 
 ---
 
@@ -37,13 +50,16 @@ Log a single print job from pasted email text or spoken specs.
 - Creates one correct row in the Print Jobs tracker
 - Returns a confirmation with the new job link
 
+**Tools required**: Notion MCP (or outputs a formatted block for manual paste if unavailable)
+
 ---
 
 ## Requirements
 
 - **Notion MCP** must be connected (for reading/writing the Print Jobs and Clients databases)
-- **Computer use** must be enabled (for Gmail screen control during morning intake)
-- Gmail account: gopostalsd@gmail.com must be signed in to Chrome
+- **Computer use** must be enabled for `morning-intake` (Gmail screen control)
+- **Gmail MCP** must be connected for `gmail-intake`
+- The user's Gmail account must be signed in to Chrome for `morning-intake`
 
 ## Key Notion Databases
 
@@ -54,7 +70,7 @@ Log a single print job from pasted email text or spoken specs.
 
 ## Notes
 
-- The plugin never guesses a required field — it asks Michael or applies explicit defaults
-- All rules (job title format, paper type mapping, date defaults, forbidden patterns) are in `skills/morning-intake/references/print-job-schema.md`
-- Michael's reply voice and tone examples are in `skills/morning-intake/references/reply-template.md`
+- Skills never guess a required field — they ask the user or apply explicit defaults
+- All rules (job title format, paper type mapping, date defaults, forbidden patterns) live in `skills/morning-intake/references/print-job-schema.md`
+- Reply voice and tone examples are in `skills/morning-intake/references/reply-template.md`
 - To switch to auto-send mode, update the Draft Mode section in `reply-template.md`

@@ -1,19 +1,29 @@
 ---
 name: morning-intake
 description: >
-  This skill should be used when Michael says "run morning intake", "start my
+  This skill should be used when the user says "run morning intake", "start my
   morning routine", "collect print jobs", "check for new orders", "run intake",
   or "let's do morning intake". It controls Gmail in Chrome via screen automation
   to find new print job emails, stars them, and creates entries in the Notion
   Print Jobs tracker.
 metadata:
-  version: "0.3.0"
-  author: "Go Postal"
+  version: "0.4.0"
+  author: "Print Job Intake Plugin"
 ---
 
 # Morning Intake Routine
 
-Automate Go Postal's morning print job collection. Run this routine each morning to sweep Gmail for new print orders and log them to Notion.
+## Before You Begin — Identity
+
+Check memory for the user's name and their company name. Substitute these throughout this skill wherever `[user's name]` and `[company name]` appear.
+
+- If the user's name is not in memory → ask.
+- If the company name is not in memory → ask.
+- Ask both in one message if neither is available.
+
+---
+
+Automate the shop's morning print job collection. Run this routine each morning to sweep Gmail for new print orders and log them to Notion.
 
 **Tools required**: Computer use (Chrome + Gmail screen control) · Notion MCP
 
@@ -25,7 +35,7 @@ Run these steps sequentially. Process all emails before finishing the session.
 
 1. Take a screenshot to confirm Chrome is visible, or open it.
 2. Navigate to `https://mail.google.com` in the active tab.
-3. Confirm the account is `gopostalsd@gmail.com`. If a different account is showing, switch accounts.
+3. Confirm the account is `[user's Gmail account]`. If a different account is showing, switch accounts.
 
 ### Step 2 — Search for New Print Job Emails
 
@@ -52,7 +62,7 @@ It is NOT a new job if:
 - Body is only a thank-you or pickup confirmation
 - Body is about billing, charges, claims, or payment
 - Body says "scratch", "cancel", or "never mind"
-- It is Michael's own forwarded email with no new client content
+- It is the user's own forwarded email with no new client content
 
 ### Step 4 — Star the Email
 
@@ -62,8 +72,8 @@ For each confirmed print job email, click the star icon in Gmail.
 
 From the email, extract every available field. Apply the confidence model:
 - **Certain** — explicitly stated → use it
-- **Probable** — strongly implied → confirm with Michael before writing
-- **Unknown** — not present → apply default rule or flag for Michael
+- **Probable** — strongly implied → confirm with the user before writing
+- **Unknown** — not present → apply default rule or flag for the user
 
 Fields to extract (see `references/print-job-schema.md` for full schema and rules):
 - **Job** (title): item type + premium add-ons only. No size, quantity, or client name.
@@ -80,7 +90,7 @@ Fields to extract (see `references/print-job-schema.md` for full schema and rule
 
 Query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) via Notion MCP and count jobs with status "Not started" or "In progress". Load `references/completion-date-logic.md` and apply the depth → business days table to set the Promised date for this job.
 
-If the email specified a due date, use that instead. If queue depth is 20+, flag to Michael before proceeding.
+If the email specified a due date, use that instead. If queue depth is 20+, flag to the user before proceeding.
 
 ### Step 7 — Run Pre-Flight Gate
 
@@ -92,13 +102,13 @@ Before creating any Notion row, verify every item passes. Do not create a partia
 - [ ] Job title contains billing add-ons and excludes Size/Quantity/Client name
 - [ ] Rcvd = today; Promised = next business day 4 PM (or confirmed otherwise); Promised is not before Rcvd
 - [ ] No likely duplicate (same Client + Size + Quantity + Paper Type + Promised in last 30 days)
-- [ ] All Probable values were confirmed with Michael
+- [ ] All Probable values were confirmed with the user
 
-If any item fails: stop, flag the issue to Michael, and move to the next email.
+If any item fails: stop, flag the issue to the user, and move to the next email.
 
 ### Step 7b — Confirm Before Write
 
-Show Michael the extracted entry and wait for a go-ahead before writing to Notion. When processing multiple emails, batch them into one message:
+Show the user the extracted entry and wait for a go-ahead before writing to Notion. When processing multiple emails, batch them into one message:
 
 ```
 Ready to log — confirm?
@@ -114,7 +124,7 @@ Ready to log — confirm?
 Reply ✅ to log, or correct any field: "[field] = [value]"
 ```
 
-Do not write to Notion until Michael confirms.
+Do not write to Notion until the user confirms.
 
 ### Step 8 — Create Notion Entry
 
@@ -122,7 +132,7 @@ Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079dd
 
 ### Step 9 — Summary Report
 
-After processing all emails, report to Michael:
+After processing all emails, report to the user:
 
 ```
 Morning Intake Complete — [date]
@@ -141,8 +151,8 @@ Jobs created:
 - Never create a Notion row while any required field is unknown and unconfirmed.
 - Never put Size, Quantity, or Client name in the Job title.
 - Never set a same-day Promised date by default.
-- If an email is ambiguous, flag it in the summary and ask Michael rather than guessing.
-- If a client doesn't exist in Notion, create their Client page immediately (then remind Michael to add logo + cover image).
+- If an email is ambiguous, flag it in the summary and ask the user rather than guessing.
+- If a client doesn't exist in Notion, create their Client page immediately (then remind the user to add logo + cover image).
 
 ## Reference Files
 
