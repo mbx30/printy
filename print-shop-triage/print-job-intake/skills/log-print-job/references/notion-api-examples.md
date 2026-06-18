@@ -2,277 +2,165 @@
 
 This guide shows exactly how to structure Notion MCP tool calls when creating print job entries.
 
-## Overview
+> **Important**: These examples target the **Notion MCP** `notion-create-pages` tool. This is **not** the raw Notion REST API. The MCP tool uses a flat property format (scalar values), not the REST API's nested objects (`{"title": [{"text": {"content": ...}}]}`). Do not mix the two.
 
-The Notion MCP provides `notion-create-pages` tool. Use it to create new pages in the Print Jobs database.
+## Always Fetch the Schema First
 
-## Tool Call Structure
+Before writing, call `notion-fetch` on the Print Jobs database to read its live **data source schema**. The fetch result shows:
+- The exact property names and types (the `<database>` SQLite definition)
+- The `data_source_id` (a `collection://<id>` URL) you must use as the parent when a database has one or more data sources
 
 ```json
+// notion-fetch
 {
-  "tool_call": "notion-create-pages",
-  "parameters": {
-    "pages": [
-      {
-        "parent": {
-          "database_id": "32c9cb079ddb807eba29dd54fee53aac"
-        },
-        "properties": {
-          "Job": { "title": [{ "text": { "content": "Job Title Here" } }] },
-          "Client": { "relation": [{ "id": "CLIENT_PAGE_ID" }] },
-          "Size": { "select": { "name": "8.5x11" } },
-          "Quantity": { "number": 100 },
-          "Paper Type": { "multi_select": [{ "name": "Cardstock" }] },
-          "Rcvd": { "date": { "start": "2026-06-18" } },
-          "Promised": { "date": { "start": "2026-06-19" } },
-          "Done": { "status": { "name": "Not started" } }
-        }
-      }
-    ]
-  }
+  "id": "32c9cb079ddb807eba29dd54fee53aac"
 }
 ```
 
-## Required Fields
+Use the property names and formats from that result as the authoritative spec — they supersede anything written here.
 
-All of these must be present:
+## Tool Call Structure
 
-| Field | Type | Example Value |
-|-------|------|---------------|
-| `pages` | array | `[{ parent: {...}, properties: {...} }]` |
-| `parent.database_id` | string | `"32c9cb079ddb807eba29dd54fee53aac"` |
-| `Job` (title) | object | `{ "title": [{ "text": { "content": "Laminated Menus" } }] }` |
-| `Client` (relation) | object | `{ "relation": [{ "id": "PAGE_ID" }] }` |
-| `Size` (select) | object | `{ "select": { "name": "8.5x11" } }` |
-| `Quantity` (number) | object | `{ "number": 100 }` |
-| `Paper Type` (multi_select) | object | `{ "multi_select": [{ "name": "Cardstock" }] }` |
-| `Done` (status) | object | `{ "status": { "name": "Not started" } }` |
-
-## Real Example
-
-Print Job for Loma Club:
+`notion-create-pages` takes a **top-level** `parent` (shared by every page in the call) and a `pages` array. Each item in `pages` has `properties` only — **do not put `parent` inside a page object** (it will be rejected).
 
 ```json
+// notion-create-pages
 {
+  "parent": {
+    "type": "data_source_id",
+    "data_source_id": "DATA_SOURCE_ID_FROM_FETCH"
+  },
   "pages": [
     {
-      "parent": {
-        "database_id": "32c9cb079ddb807eba29dd54fee53aac"
-      },
       "properties": {
-        "Job": {
-          "title": [
-            {
-              "text": {
-                "content": "Laminated Menus"
-              }
-            }
-          ]
-        },
-        "Client": {
-          "relation": [
-            {
-              "id": "loma_club_page_id_here"
-            }
-          ]
-        },
-        "Size": {
-          "select": {
-            "name": "8.5x14"
-          }
-        },
-        "Quantity": {
-          "number": 35
-        },
-        "Paper Type": {
-          "multi_select": [
-            {
-              "name": "Cardstock"
-            }
-          ]
-        },
-        "Rcvd": {
-          "date": {
-            "start": "2026-06-18"
-          }
-        },
-        "Promised": {
-          "date": {
-            "start": "2026-06-19"
-          }
-        },
-        "Done": {
-          "status": {
-            "name": "Not started"
-          }
-        }
+        "Job": "Laminated Menus",
+        "Client": "Loma Club",
+        "Size": "8.5x14",
+        "Quantity": 35,
+        "Paper Type": "Cardstock",
+        "Rcvd": "2026-06-18",
+        "Promised": "2026-06-19",
+        "Done": "Not started"
       }
     }
   ]
 }
 ```
 
+Properties are a **flat map of property name → scalar value** (string, number, or null). There is no nested `{"select": {...}}` or `{"title": [...]}` wrapping.
+
+## Required Structure
+
+| Element | Where | Notes |
+|---------|-------|-------|
+| `pages` | top-level array | Required. Even one page must be wrapped in `[ ]`. |
+| `parent` | top-level object | Shared by all pages. Has `type` + matching id field. |
+| `parent.type` | inside `parent` | `"data_source_id"`, `"database_id"`, or `"page_id"`. |
+| `properties` | inside each page | Flat map: property name → string / number / null. |
+
+Use `data_source_id` (from a `collection://` URL in the fetch result) when the database has one or more data sources. Use `database_id` only for a single-data-source database. `page_id` is for non-database pages.
+
+## Field Formatting (flat values)
+
+The exact accepted value for each property comes from the fetched `<database>` schema. As a general guide for this tracker:
+
+| Property | Type | Example value |
+|----------|------|---------------|
+| Job | Title | `"Laminated Menus"` (plain string) |
+| Client | Relation | Confirm format against the live schema (usually the related page title or ID as a string) |
+| Size | Select | `"8.5x14"` (string, must match a live option exactly) |
+| Quantity | Number | `35` (plain number, not a string) |
+| Paper Type | Multi-select | Confirm format against the live schema (often the option name as a string) |
+| Rcvd | Date | `"2026-06-18"` (ISO date string) |
+| Promised | Date | `"2026-06-19"` (ISO date string; include time only if the schema accepts it) |
+| Done | Status | `"Not started"` (string, must match a live option exactly) |
+
+> Relation and multi-select formatting under the MCP's flat-value convention is not guaranteed identical across schemas — always confirm against the live `notion-fetch` result before writing, rather than guessing.
+
 ## Common Mistakes
 
-❌ **WRONG** — `pages` is undefined or missing:
+❌ **WRONG** — `pages` missing entirely (this is the error from issue #11):
 ```json
 {
   "parent": { "database_id": "..." },
-  "properties": { ... }
+  "properties": { "Job": "Laminated Menus" }
 }
 ```
 
-✅ **RIGHT** — `pages` is an array containing the object:
+✅ **RIGHT** — `pages` is a top-level array:
+```json
+{
+  "parent": { "type": "data_source_id", "data_source_id": "..." },
+  "pages": [
+    { "properties": { "Job": "Laminated Menus" } }
+  ]
+}
+```
+
+❌ **WRONG** — `parent` placed inside a page object (rejected; page items don't allow extra fields):
 ```json
 {
   "pages": [
     {
       "parent": { "database_id": "..." },
-      "properties": { ... }
+      "properties": { "Job": "Laminated Menus" }
     }
   ]
 }
 ```
 
-❌ **WRONG** — Title is a string:
+✅ **RIGHT** — `parent` is top-level, shared by all pages:
 ```json
 {
-  "Job": "Laminated Menus"
+  "parent": { "type": "data_source_id", "data_source_id": "..." },
+  "pages": [
+    { "properties": { "Job": "Laminated Menus" } }
+  ]
 }
 ```
 
-✅ **RIGHT** — Title is a Notion title object:
+❌ **WRONG** — REST API nested property objects (this MCP does not accept them):
 ```json
 {
-  "Job": {
-    "title": [
-      {
-        "text": {
-          "content": "Laminated Menus"
-        }
-      }
-    ]
+  "properties": {
+    "Job": { "title": [{ "text": { "content": "Laminated Menus" } }] },
+    "Size": { "select": { "name": "8.5x14" } },
+    "Quantity": { "number": 35 }
   }
 }
 ```
 
-❌ **WRONG** — Multi-select as a string:
+✅ **RIGHT** — flat scalar values:
 ```json
 {
-  "Paper Type": "Cardstock"
-}
-```
-
-✅ **RIGHT** — Multi-select as an array of objects:
-```json
-{
-  "Paper Type": {
-    "multi_select": [
-      {
-        "name": "Cardstock"
-      }
-    ]
+  "properties": {
+    "Job": "Laminated Menus",
+    "Size": "8.5x14",
+    "Quantity": 35
   }
 }
 ```
 
 ## Batch Creation
 
-To create multiple jobs at once, add multiple objects to the `pages` array:
+All pages in one call share the same top-level `parent`. Add more objects to the `pages` array:
 
 ```json
 {
+  "parent": { "type": "data_source_id", "data_source_id": "..." },
   "pages": [
-    {
-      "parent": { "database_id": "32c9cb079ddb807eba29dd54fee53aac" },
-      "properties": { ... job 1 ... }
-    },
-    {
-      "parent": { "database_id": "32c9cb079ddb807eba29dd54fee53aac" },
-      "properties": { ... job 2 ... }
-    }
+    { "properties": { "Job": "Laminated Menus", "Quantity": 35 } },
+    { "properties": { "Job": "Venue Posters", "Quantity": 200 } }
   ]
-}
-```
-
-## Field Type Reference
-
-### Title (Job field)
-```json
-{
-  "title": [
-    {
-      "text": {
-        "content": "Your title text"
-      }
-    }
-  ]
-}
-```
-
-### Relation (Client field)
-First, query or fetch the Client page ID, then:
-```json
-{
-  "relation": [
-    {
-      "id": "the_client_page_id"
-    }
-  ]
-}
-```
-
-### Select (Size field)
-```json
-{
-  "select": {
-    "name": "8.5x11"
-  }
-}
-```
-
-### Number (Quantity, Cost per fields)
-```json
-{
-  "number": 100
-}
-```
-
-### Multi-select (Paper Type field)
-```json
-{
-  "multi_select": [
-    {
-      "name": "Cardstock"
-    }
-  ]
-}
-```
-
-### Date (Rcvd, Promised fields)
-```json
-{
-  "date": {
-    "start": "2026-06-19"
-  }
-}
-```
-
-### Status (Done field)
-```json
-{
-  "status": {
-    "name": "Not started"
-  }
 }
 ```
 
 ## Before Calling the Tool
 
-1. ✅ Verify all required fields are non-empty
-2. ✅ Verify Size, Paper Type, and Done values exist in the live Notion schema
-3. ✅ Verify Client page ID is correct (fetch from Clients database if needed)
-4. ✅ Verify the pages array is not empty
-5. ✅ Verify every property object follows the format in this guide
+1. ✅ Fetch the Print Jobs database with `notion-fetch` to get the live schema and `data_source_id`
+2. ✅ Verify all required fields are non-empty (Job, Client, Size, Quantity, Paper Type, Promised, Done)
+3. ✅ Verify Size, Paper Type, and Done values exist in the live schema option sets
+4. ✅ Verify each property is a flat scalar value (string/number/null), not a nested object
+5. ✅ Verify `parent` is top-level with a `type`, and `pages` is a non-empty array with no per-page `parent`
 
 If any check fails, ask the user for clarification before calling the tool.

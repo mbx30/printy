@@ -130,18 +130,20 @@ Do not write to Notion until the user confirms.
 
 Use the `notion-create-pages` tool to create a new page. Load the detailed format guide at `references/notion-api-format.md` for the exact JSON structure required.
 
-**Critical**: The `pages` parameter MUST be an array containing your properties object. Do not omit it.
+**Critical**: First `notion-fetch` the Print Jobs database to get its live schema and `data_source_id`. Then call `notion-create-pages` with a **top-level** `parent` and a top-level `pages` **array**. Properties are flat scalar values (string/number/null), not nested REST objects.
 
 Pre-flight checklist:
+- [ ] Fetched the live schema + `data_source_id` via `notion-fetch`
 - [ ] All required fields are non-empty (Job, Client, Size, Quantity, Paper Type, Promised, Done)
-- [ ] Client page ID has been looked up from the Clients database
+- [ ] Client resolved against the Clients database
 - [ ] Size value matches live option exactly (check spacing — `5 x 8` vs `4x6`)
-- [ ] Paper Type value matches a live multi-select option
+- [ ] Paper Type value matches a live option
 - [ ] Done = "Not started" (only option for new jobs)
 - [ ] Promised is YYYY-MM-DD format and after or equal to Rcvd
-- [ ] `pages` array is constructed and not empty
+- [ ] `parent` is top-level (with `type`); `pages` is a non-empty array; no per-page `parent`
+- [ ] Each property is a flat scalar value, not a nested object
 
-After creation, verify the returned page ID and properties match. Fix any mismatch immediately.
+After creation, verify the returned page and properties match. Fix any mismatch immediately.
 
 ### Step 9 — Summary Report
 
