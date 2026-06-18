@@ -8,41 +8,51 @@ description: >
   orders". Reads Gmail via API, logs jobs to Notion, and creates reply drafts —
   all without touching the screen.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Go Postal"
 ---
 
 # Gmail Intake Routine
 
-API-based morning intake for Go Postal. Identical workflow logic to `morning-intake` but uses Gmail MCP tools instead of screen control. Designed for handoff — anyone with Gmail MCP and Notion MCP connected can run this skill without needing computer use access.
+API-based morning intake for Go Postal. Identical workflow logic to `morning-intake` but driven entirely by Gmail MCP tools instead of screen control. Anyone with Gmail MCP and Notion MCP connected can run this skill without computer use.
 
-**Tools required**: Gmail MCP · Notion MCP
+**Tools required**: Gmail MCP (`mcp__Gmail__*`) · Notion MCP (`mcp__Notion__*`)
 
-Load `references/gmail-mcp.md` for the specific tool names and parameters used in each step. If the Gmail provider or MCP server changes, only that file needs updating.
-
-**Current reply mode: DRAFT** — create drafts only. Do not send. Switch to auto-send only after Michael confirms accuracy.
+**Current reply mode: DRAFT** — create drafts only. Do not send.
 
 ## Execution Flow
 
 ### Step 1 — Verify Gmail Account
 
-Load `references/gmail-mcp.md` and use the search tool to run a quick test query. Confirm responses are coming from `gopostalsd@gmail.com`. If credentials point to a different account, stop and alert the user before proceeding.
+Call `mcp__Gmail__search_threads` with `query: "label:inbox"` as a test. Confirm responses are coming from `gopostalsd@gmail.com`. If credentials point to a different account, stop and alert the user before proceeding.
 
 ### Step 2 — Search for New Print Job Emails
 
-Use the Gmail MCP search tool (see `references/gmail-mcp.md` for the exact call) with this query:
+Call `mcp__Gmail__search_threads` with:
 
 ```
-is:unread (subject:print OR subject:menu OR subject:menus OR subject:poster OR subject:flyer OR subject:flier OR subject:bulletin OR subject:card OR subject:sign OR subject:signage OR subject:bookmark OR subject:order OR subject:flyers OR subject:fliers)
+query: "is:unread (subject:print OR subject:menu OR subject:menus OR subject:poster OR subject:flyer OR subject:flier OR subject:bulletin OR subject:card OR subject:sign OR subject:signage OR subject:bookmark OR subject:order OR subject:flyers OR subject:fliers)"
 ```
 
-Also search for unread emails from known client domains — see `../morning-intake/references/email-detection-rules.md` for the full sender list.
+Also run separate queries for known client domains from `../morning-intake/references/email-detection-rules.md`, e.g.:
 
-Read thread subjects and senders from the tool response. Fetch the full body of each candidate thread.
+```
+query: "is:unread from:lomaclubreservations.com"
+```
 
-### Step 3 — Evaluate Each Email
+Returns: list of thread objects with `id`, `snippet`, and message metadata.
 
-For each candidate, determine if it is a **new print job request**. Load `../morning-intake/references/email-detection-rules.md` for full decision logic.
+### Step 3 — Read and Evaluate Each Email
+
+For each candidate thread, call `mcp__Gmail__get_thread`:
+
+```
+threadId: [id from search results]
+```
+
+Returns: full message bodies, sender, subject, date.
+
+Load `../morning-intake/references/email-detection-rules.md` for full decision logic. Quick filter:
 
 It IS a new job if the body contains:
 - Specific quantities, sizes, or materials
@@ -57,7 +67,12 @@ It is NOT a new job if:
 
 ### Step 4 — Star the Email
 
-For each confirmed print job email, apply the STARRED label using the Gmail MCP label tool (see `references/gmail-mcp.md`).
+For each confirmed print job, call `mcp__Gmail__label_message`:
+
+```
+messageId: [id of the first/most relevant message in the thread]
+labelIds:  ["STARRED"]
+```
 
 ### Step 5 — Extract Job Details
 
@@ -99,7 +114,7 @@ If any item fails: stop, flag the issue, and move to the next email.
 
 ### Step 7b — Confirm Before Write
 
-Show the user the extracted entry and wait for a go-ahead. When processing multiple emails, batch them into one message:
+Show the user the extracted entry and wait for a go-ahead. Batch multiple emails into one message:
 
 ```
 Ready to log — confirm?
@@ -123,9 +138,18 @@ Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079dd
 
 ### Step 9 — Create Reply Draft in Gmail
 
-Use the Gmail MCP draft tool (see `references/gmail-mcp.md`) to create a reply draft on the original thread. Do not send.
+Call `mcp__Gmail__create_draft`:
 
-Draft content — load `../morning-intake/references/reply-template.md` for format and tone:
+```
+to:       [client email address]
+subject:  "Re: [original subject]"
+body:     [reply text — see reply-template.md for format and tone]
+threadId: [original thread id]
+```
+
+Do not set `send: true`. The draft sits in Gmail for the user to review and send manually.
+
+Draft content rules (load `../morning-intake/references/reply-template.md`):
 - Address client by first name
 - Confirm the order briefly (item + quantity)
 - Give the estimated completion date/time from Step 6
@@ -160,7 +184,6 @@ Drafts created in Gmail: [N]
 
 ## Reference Files
 
-- `references/gmail-mcp.md` — Gmail MCP tool names, parameters, and query syntax **(optional — swap this file if the email provider or MCP server changes)**
 - `../morning-intake/references/email-detection-rules.md` — known senders, keyword logic, negative signals
 - `../morning-intake/references/print-job-schema.md` — full data model, job title rules, paper type decision tree, normalization
 - `../morning-intake/references/completion-date-logic.md` — how to estimate completion date from queue depth
