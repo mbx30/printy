@@ -7,7 +7,7 @@ description: >
   to find new print job emails, stars them, creates entries in the Notion Print
   Jobs tracker, and drafts confirmation replies to clients — all in one routine.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   author: "Go Postal"
 ---
 
@@ -17,7 +17,14 @@ Automate Go Postal's morning print job collection. Run this routine each morning
 
 ## Overview
 
-This skill controls the screen (Chrome + Gmail) for email retrieval and starring, uses the Notion MCP to write tracker entries, and uses screen control to draft replies in Gmail. Do NOT use the Gmail API for reading emails — use computer use only.
+This skill has two capability tiers — use whichever matches your tools:
+
+| Step | With computer use + Notion MCP | With Gmail MCP + Notion MCP | No tools (plain chat) |
+|------|-------------------------------|----------------------------|-----------------------|
+| Read emails | Screen control in Chrome | `mcp__Gmail__search_threads` / `get_thread` | Michael pastes email text |
+| Star emails | Screen control click | `mcp__Gmail__label_message` (starred label) | Michael stars manually |
+| Write to tracker | `mcp__Notion__notion-create-pages` | `mcp__Notion__notion-create-pages` | Output formatted block for manual paste |
+| Draft reply | Screen control in Chrome | `mcp__Gmail__create_draft` | Output reply text for Michael to copy |
 
 **Current reply mode: DRAFT** — compose the reply and leave it as a draft for Michael to review and send manually. Do not auto-send. When Michael confirms a high success rate, this mode can be switched to auto-send.
 
@@ -25,12 +32,13 @@ This skill controls the screen (Chrome + Gmail) for email retrieval and starring
 
 Run these steps sequentially. After each email is processed, move to the next before finishing the session.
 
-### Step 1 — Open Gmail in Chrome
+### Step 1 — Access Gmail
 
-Use computer use to:
-1. Take a screenshot to confirm Chrome is visible or open it.
-2. Navigate to `https://mail.google.com` in the active tab.
-3. Confirm the account is `gopostalsd@gmail.com`. If a different account is showing, switch accounts.
+**Computer use path**: Take a screenshot to confirm Chrome is visible or open it. Navigate to `https://mail.google.com`. Confirm the account is `gopostalsd@gmail.com`; switch accounts if needed.
+
+**Gmail MCP path**: Use `mcp__Gmail__search_threads` directly — no browser needed. Confirm you are operating on the `gopostalsd@gmail.com` account.
+
+**No-tools path**: Ask Michael to paste the email text he wants to log, then proceed from Step 5.
 
 ### Step 2 — Search for New Print Job Emails
 
@@ -42,7 +50,7 @@ is:unread (subject:print OR subject:menu OR subject:menus OR subject:poster OR s
 
 Also check: `is:unread` emails from known client domains even if subject doesn't match keywords (see `references/email-detection-rules.md` for the full sender list).
 
-Take a screenshot and read the result list.
+**Computer use**: take a screenshot and read the result list. **Gmail MCP**: read thread subjects and senders from the tool response.
 
 ### Step 3 — Evaluate Each Email
 
@@ -61,7 +69,7 @@ It is NOT a new job if:
 
 ### Step 4 — Star the Email
 
-For each confirmed print job email, star it in Gmail using the star icon (computer use click).
+**Computer use**: click the star icon. **Gmail MCP**: call `mcp__Gmail__label_message` with the STARRED label. **No tools**: note the email in the summary so Michael can star it manually.
 
 ### Step 5 — Extract Job Details
 
@@ -83,9 +91,11 @@ Fields to extract (see `references/print-job-schema.md` for full schema and rule
 
 ### Step 6 — Check Workload for Estimated Completion Date
 
-Before creating the Notion entry, query the Print Jobs tracker to count active jobs.
+Before creating the tracker entry, count active jobs to estimate completion.
 
-Use the Notion MCP tool `notion-query-database-view` or `notion-fetch` on the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) to count jobs with status "Not started" or "In progress".
+**With Notion access**: query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) and count jobs with status "Not started" or "In progress". Use `notion-query-database-view` or `notion-fetch`.
+
+**Without Notion access**: ask Michael, "How many jobs are currently in the queue?" and use his answer.
 
 Load `references/completion-date-logic.md` to calculate the estimated completion date based on current queue depth. This estimated date is what you will tell the client.
 
@@ -103,17 +113,56 @@ Before creating the Notion row, verify every item passes. Do not create a partia
 
 If any item fails: stop, flag the issue to Michael, and move to the next email. Do not create a guessed row.
 
-### Step 8 — Create Notion Entry
+### Step 7b — Confirm Before Write
 
-Use the Notion MCP to create a new page in the Print Jobs database with the validated fields.
+Show Michael the extracted entry and wait for a go-ahead before writing to the tracker:
 
-After creation, verify the returned values match the intended values. Fix any mismatch immediately.
+```
+Ready to log — confirm?
 
-### Step 9 — Draft Client Reply in Gmail
+  Client:   [Client]
+  Job:      [Job title]
+  Qty:      [Quantity] × [Size]
+  Paper:    [Paper Type]
+  Rcvd:     [date]
+  Promised: [date] at 4:00 PM
+  Status:   Not started
 
-Return to the email in Gmail (computer use). Click Reply.
+Reply ✅ to log, or correct any field.
+```
+
+Do not write until Michael confirms. Batch all emails in one message when processing multiple: "Found 3 jobs — confirm all or flag any to fix."
+
+### Step 8 — Write to the Tracker
+
+**With Notion API access** (`notion-create-pages` or equivalent): create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. Verify the returned values match. Fix any mismatch immediately.
+
+**Without Notion access**: output the formatted block for Michael to paste:
+
+```
+NEW PRINT JOB
+─────────────────────────────
+Job:        [Job title]
+Client:     [Client]
+Size:       [Size]
+Qty:        [Quantity]
+Paper Type: [Paper Type]
+Rcvd:       [date]
+Promised:   [date] 4:00 PM
+Done:       Not started
+─────────────────────────────
+```
+
+### Step 9 — Draft Client Reply
+
+**Computer use**: return to the email in Gmail and click Reply.
+
+**Gmail MCP**: call `mcp__Gmail__create_draft` with the reply text.
+
+**No tools**: output the reply text for Michael to copy-paste.
 
 Draft a short, professional reply in Michael's voice. Load `references/reply-template.md` for the exact format and tone.
+
 
 Key rules:
 - Address client by first name

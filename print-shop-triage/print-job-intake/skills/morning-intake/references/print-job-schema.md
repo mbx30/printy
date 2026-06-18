@@ -5,6 +5,8 @@
 - **Print Jobs database ID**: `32c9cb079ddb807eba29dd54fee53aac`
 - **Clients database ID**: `2ee9cb079ddb809d81f2fa9a9c2a35d3`
 - Always verify the live schema before writing — option sets (Size, Paper Type, Done) can change.
+- **With Notion API access**: fetch the database schema at session start to get the current option sets. Inject the live values as the authoritative list, superseding anything in this document.
+- **Without API access**: if a value you're about to write is not listed in this document, ask Michael: "Is '[value]' a valid [Size/Paper Type] option in Notion right now?"
 
 ## Data Model
 

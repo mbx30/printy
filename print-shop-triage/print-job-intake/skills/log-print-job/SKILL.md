@@ -8,13 +8,15 @@ description: >
   correct row in the Notion Print Jobs tracker. No screen control needed —
   the user provides the email content directly.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   author: "Go Postal"
 ---
 
 # Log Print Job
 
-Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — Michael provides the email text (or dictates the job details), and this skill handles extraction, validation, and Notion creation.
+Create a single new entry in the Notion Print Jobs tracker from pasted email content or spoken specs. This is the manual intake path — Michael provides the email text (or dictates the job details), and this skill handles extraction, validation, and writing.
+
+> **Compatibility**: This skill works with any AI assistant. Steps 1–4 are pure reasoning — no tools required. Step 5 (Write) has two paths: API path (Notion MCP or equivalent) and Manual path (formatted output for Michael to paste). Use whichever applies.
 
 ## When to Use This
 
@@ -55,7 +57,27 @@ If any required field (Job, Client, Size, Quantity, Paper Type, Promised, Done) 
 
 Ask the fewest questions possible. Group all clarifications into one message.
 
-### 3. Run Pre-Flight Gate
+### 3. Confirm Before Write
+
+Before touching the tracker, show Michael a structured summary and wait for a go-ahead:
+
+```
+Ready to log — confirm?
+
+  Client:   [Client]
+  Job:      [Job title]
+  Qty:      [Quantity] × [Size]
+  Paper:    [Paper Type]
+  Rcvd:     [date]
+  Promised: [date] at 4:00 PM
+  Status:   Not started
+
+Reply ✅ to log, or correct any field: "[field] = [value]"
+```
+
+Do not write anything until Michael confirms. If Michael corrects a field, update it and re-show the summary.
+
+### 4. Run Pre-Flight Gate
 
 Before creating the row:
 
@@ -69,13 +91,30 @@ Before creating the row:
 
 If any box fails: stop and ask. Do not create a partial or guessed row.
 
-### 4. Create the Notion Entry
+### 5. Write to the Tracker
 
-Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`).
+**Path A — API access available** (Notion MCP or equivalent Notion integration):
+Create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
-After creation, verify the returned values match the intended values. Fix any mismatch immediately.
+**Path B — No API access** (plain chat, no tools):
+Output this block for Michael to paste directly into Notion:
 
-### 5. Confirm to Michael
+```
+NEW PRINT JOB
+─────────────────────────────
+Job:        [Job title]
+Client:     [Client]
+Size:       [Size]
+Qty:        [Quantity]
+Paper Type: [Paper Type]
+Rcvd:       [date]
+Promised:   [date] 4:00 PM
+Done:       Not started
+Cost per:   [value or blank]
+─────────────────────────────
+```
+
+### 6. Confirm to Michael
 
 Return a short confirmation:
 
@@ -90,7 +129,7 @@ Rcvd: [date]
 Promised: [date + time]
 Status: Not started
 
-→ [Notion link to the new job page]
+→ [Notion link to the new job page, if available]
 ```
 
 If a new client was created, add: "New client page created for [Client] — remember to add a logo and cover image."
