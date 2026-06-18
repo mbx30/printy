@@ -1,9 +1,10 @@
 {
   "name": "print-job-intake",
-  "version": "0.1.0",
-  "description": "Go Postal print job intake automation. Runs a morning routine to collect new print jobs from Gmail, create Notion tracker entries, and draft client replies. Also supports manual intake from pasted email text.",
+  "version": "1.0.0",
+  "description": "Morning print job intake automation for print shops. Sweeps Gmail for new orders, calculates promised dates from live queue depth, logs jobs to a Notion tracker, and drafts client confirmation replies.",
   "author": {
-    "name": "Michael (Go Postal)"
+    "name": "Go Postal SD",
+    "url": "https://github.com/mbx30/printy"
   },
-  "keywords": ["print", "notion", "gmail", "intake", "go-postal"]
+  "keywords": ["print", "notion", "gmail", "intake", "job-tracking"]
 }
