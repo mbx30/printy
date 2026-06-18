@@ -4,8 +4,8 @@ description: >
   This skill should be used when Michael says "run morning intake", "start my
   morning routine", "collect print jobs", "check for new orders", "run intake",
   or "let's do morning intake". It controls Gmail in Chrome via screen automation
-  to find new print job emails, stars them, creates entries in the Notion Print
-  Jobs tracker, and drafts confirmation replies to clients — all in one routine.
+  to find new print job emails, stars them, and creates entries in the Notion
+  Print Jobs tracker.
 metadata:
   version: "0.3.0"
   author: "Go Postal"
@@ -13,11 +13,9 @@ metadata:
 
 # Morning Intake Routine
 
-Automate Go Postal's morning print job collection. Run this routine each morning to sweep Gmail for new print orders, log them to Notion, and draft client confirmation replies.
+Automate Go Postal's morning print job collection. Run this routine each morning to sweep Gmail for new print orders and log them to Notion.
 
 **Tools required**: Computer use (Chrome + Gmail screen control) · Notion MCP
-
-**Current reply mode: DRAFT** — compose the reply and leave it as a draft for Michael to review and send manually. Do not auto-send.
 
 ## Execution Flow
 
@@ -78,13 +76,7 @@ Fields to extract (see `references/print-job-schema.md` for full schema and rule
 - **Done**: always "Not started" for new jobs
 - **Cost per**: only if explicitly stated
 
-### Step 6 — Check Workload for Estimated Completion Date
-
-Use the Notion MCP to query the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) and count jobs with status "Not started" or "In progress".
-
-Load `references/completion-date-logic.md` to translate queue depth into an estimated completion date. This is what you will tell the client in the reply.
-
-### Step 7 — Run Pre-Flight Gate
+### Step 6 — Run Pre-Flight Gate
 
 Before creating any Notion row, verify every item passes. Do not create a partial row.
 
@@ -98,7 +90,7 @@ Before creating any Notion row, verify every item passes. Do not create a partia
 
 If any item fails: stop, flag the issue to Michael, and move to the next email.
 
-### Step 7b — Confirm Before Write
+### Step 6b — Confirm Before Write
 
 Show Michael the extracted entry and wait for a go-ahead before writing to Notion. When processing multiple emails, batch them into one message:
 
@@ -118,23 +110,11 @@ Reply ✅ to log, or correct any field: "[field] = [value]"
 
 Do not write to Notion until Michael confirms.
 
-### Step 8 — Create Notion Entry
+### Step 7 — Create Notion Entry
 
 Use the Notion MCP to create a new page in the Print Jobs database (`32c9cb079ddb807eba29dd54fee53aac`) with the confirmed fields. After creation, verify the returned values match. Fix any mismatch immediately.
 
-### Step 9 — Draft Client Reply in Gmail
-
-Return to the email in Chrome. Click Reply.
-
-Draft a short, professional reply in Michael's voice. Load `references/reply-template.md` for the exact format and tone.
-
-- Address client by first name
-- Confirm the order briefly (item + quantity; no need to list every spec)
-- Give the estimated completion date/time from Step 6
-- Sign as Michael
-- Do NOT click Send — leave as a draft for Michael to review
-
-### Step 10 — Summary Report
+### Step 8 — Summary Report
 
 After processing all emails, report to Michael:
 
@@ -148,8 +128,6 @@ Morning Intake Complete — [date]
 Jobs created:
 - [Client] — [Job title] — Promised [date]
 - ...
-
-Drafts waiting in Gmail: [N]
 ```
 
 ## Important Rules
@@ -157,7 +135,6 @@ Drafts waiting in Gmail: [N]
 - Never create a Notion row while any required field is unknown and unconfirmed.
 - Never put Size, Quantity, or Client name in the Job title.
 - Never set a same-day Promised date by default.
-- Never send a reply — always leave as draft.
 - If an email is ambiguous, flag it in the summary and ask Michael rather than guessing.
 - If a client doesn't exist in Notion, create their Client page immediately (then remind Michael to add logo + cover image).
 
@@ -165,5 +142,3 @@ Drafts waiting in Gmail: [N]
 
 - `references/email-detection-rules.md` — known senders, keyword logic, negative signals
 - `references/print-job-schema.md` — full data model, job title rules, paper type decision tree, normalization
-- `references/completion-date-logic.md` — how to estimate completion date from queue depth
-- `references/reply-template.md` — Michael's reply voice, format, and examples
